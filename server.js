@@ -39,16 +39,20 @@ let dbConn;
 async function getDb() {
   if (dbConn) return dbConn;
 
-  const dbType = process.env.DB_TYPE || "sqlite";
+  const isProd = process.env.DB_HOST ? true : false;
 
-  if (dbType === "mysql") {
-    console.log("🛢️ Connecting to MySQL...");
-    dbConn = await mysql.createConnection({
+  if (isProd) {
+    console.log("🛢️ Connecting to MySQL (Production)...");
+    const pool = mysql.createPool({
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
     });
+    dbConn = pool;
 
     // Wrapper for a better unified experience
     return {
@@ -68,7 +72,7 @@ async function getDb() {
       })
     };
   } else {
-    console.log("📂 Connecting to SQLite...");
+    console.log("📂 Connecting to SQLite (Local)...");
     const sqliteDb = new (require("better-sqlite3"))("./products.db");
     return {
       prepare: (sql) => ({
@@ -85,17 +89,16 @@ async function getDb() {
 // Database Bootstrapping
 // ========================
 async function bootstrapDatabase() {
-  console.log("🛠️ Checking database schema...");
-  const db = await getDb();
-  const dbType = process.env.DB_TYPE || "sqlite";
+  console.log("🛠️ Database check initiated...");
+  try {
+    const db = await getDb();
+    const isMySQL = process.env.DB_HOST ? true : false;
+    const PK = isMySQL ? "INTEGER PRIMARY KEY AUTO_INCREMENT" : "INTEGER PRIMARY KEY AUTOINCREMENT";
+    const TEXT = isMySQL ? "TEXT" : "TEXT";
+    const REAL = isMySQL ? "DECIMAL(10,2)" : "REAL";
 
-  const isMySQL = dbType === "mysql";
-  const PK = isMySQL ? "INTEGER PRIMARY KEY AUTO_INCREMENT" : "INTEGER PRIMARY KEY AUTOINCREMENT";
-  const TEXT = isMySQL ? "TEXT" : "TEXT";
-  const REAL = isMySQL ? "DECIMAL(10,2)" : "REAL";
-
-  // Users Table
-  await db.prepare(`
+    // Users Table
+    await db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
       id ${PK},
       username VARCHAR(255) NOT NULL UNIQUE,
@@ -106,8 +109,8 @@ async function bootstrapDatabase() {
     )
   `).run();
 
-  // Products Table
-  await db.prepare(`
+    // Products Table
+    await db.prepare(`
     CREATE TABLE IF NOT EXISTS products (
       id ${PK},
       name VARCHAR(255) NOT NULL UNIQUE,
@@ -120,8 +123,8 @@ async function bootstrapDatabase() {
     )
   `).run();
 
-  // Sales Table
-  await db.prepare(`
+    // Sales Table
+    await db.prepare(`
     CREATE TABLE IF NOT EXISTS sales (
       id ${PK},
       product_id INTEGER,
@@ -134,8 +137,8 @@ async function bootstrapDatabase() {
     )
   `).run();
 
-  // Coupons Table
-  await db.prepare(`
+    // Coupons Table
+    await db.prepare(`
     CREATE TABLE IF NOT EXISTS coupons (
       id ${PK},
       code VARCHAR(50) NOT NULL UNIQUE,
@@ -148,7 +151,11 @@ async function bootstrapDatabase() {
     )
   `).run();
 
-  console.log("✅ Database schema is up to date.");
+    console.log("✅ Database schema is up to date.");
+  } catch (err) {
+    console.error("⚠️ Database check failed (Non-critical):", err.message);
+    // We don't exit here, allowing the server to stay alive for static assets or retry later
+  }
 }
 
 bootstrapDatabase().catch(err => {
@@ -917,8 +924,8 @@ const server = app.listen(PORT, () => {
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received. Shutting down gracefully...");
   server.close(async () => {
-    if (dbConn && typeof dbConn.close === "function") await dbConn.close();
-    if (dbConn && typeof dbConn.end === "function") await dbConn.end();
+    if (dbConn && typeof dbConn.end === "function") await dbConn.end(); // Pool or Connection end
+    if (dbConn && typeof dbConn.close === "function") dbConn.close(); // better-sqlite3 close
     console.log("Process terminated.");
   });
 });
