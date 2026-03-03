@@ -918,6 +918,37 @@ app.get("/health", (req, res) => {
   res.json({ status: "OK", service: "Email + Razorpay" });
 });
 
+// Database connectivity test
+app.get("/api/db-test", async (req, res) => {
+  try {
+    const dbType = process.env.DB_HOST ? "mysql" : "sqlite";
+    const db = await getDb();
+
+    // Simple query to verify connection
+    const result = await db.prepare("SELECT 1 as connected").get();
+
+    res.json({
+      success: true,
+      database: dbType,
+      connection: "READY",
+      test_query: result ? "SUCCESS" : "FAILED",
+      config: {
+        host: process.env.DB_HOST || "localhost",
+        user: process.env.DB_USER || "sqlite_user",
+        db_name: process.env.DB_NAME || "products.db"
+      }
+    });
+  } catch (err) {
+    console.error("❌ [DB TEST] FAILED:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      stack: NODE_ENV === "development" ? err.stack : undefined,
+      hint: "Check your .env credentials and ensure Hostinger MySQL allows connections from this host."
+    });
+  }
+});
+
 // 404 handler
 app.use((req, res) => res.status(404).json({ success: false, error: "Not found" }));
 
