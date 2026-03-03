@@ -26,8 +26,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 const REQUIRED_ENV = ["SESSION_SECRET", "RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET"];
 REQUIRED_ENV.forEach(key => {
   if (!process.env[key] && NODE_ENV === "production") {
-    console.error(`❌ CRITICAL: Missing required environment variable: ${key}`);
-    process.exit(1);
+    console.warn(`⚠️ WARNING: Missing environment variable: ${key}. Features requiring this will fail.`);
   }
 });
 
