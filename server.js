@@ -229,10 +229,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://apis.google.com"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://apis.google.com", "https://cdn.jsdelivr.net"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+      "font-src": ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
       "frame-src": ["'self'", "https://api.razorpay.com", "https://tds.razorpay.com", "https://checkout.razorpay.com"],
-      "img-src": ["'self'", "data:", "https://*.razorpay.com"],
-      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in"],
+      "img-src": ["'self'", "data:", "https://*.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in"],
+      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in", "https://cdn.jsdelivr.net"],
     },
   },
 }));
