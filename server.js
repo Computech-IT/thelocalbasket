@@ -30,11 +30,73 @@ REQUIRED_ENV.forEach(key => {
   }
 });
 
-// ========================
-// Database Setup
-// ========================
 const Database = require("better-sqlite3");
 const db = new Database("./products.db");
+
+// ========================
+// Database Bootstrapping
+// ========================
+function bootstrapDatabase() {
+  console.log("🛠️ Checking database schema...");
+
+  // Users Table
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'seller',
+      email TEXT UNIQUE,
+      business_name TEXT
+    )
+  `).run();
+
+  // Products Table
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      price REAL NOT NULL,
+      qty REAL NOT NULL,
+      image TEXT,
+      seller_id INTEGER,
+      FOREIGN KEY(seller_id) REFERENCES users(id)
+    )
+  `).run();
+
+  // Sales Table
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS sales (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER,
+      qty INTEGER NOT NULL,
+      total_price REAL NOT NULL,
+      sale_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      customer_email TEXT,
+      payment_id TEXT,
+      FOREIGN KEY(product_id) REFERENCES products(id)
+    )
+  `).run();
+
+  // Coupons Table
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS coupons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL UNIQUE,
+      type TEXT NOT NULL,
+      value REAL NOT NULL,
+      min_purchase REAL DEFAULT 0,
+      max_discount REAL,
+      expires DATETIME,
+      message TEXT
+    )
+  `).run();
+
+  console.log("✅ Database schema is up to date.");
+}
+
+bootstrapDatabase();
 
 // ========================
 // Middleware & Security
@@ -513,8 +575,8 @@ app.get("/api/products", (req, res) => {
     const products = db.prepare(query).all(...params);
     res.json({ success: true, products });
   } catch (err) {
-    console.error("❌ [FETCH PRODUCTS] Error:", err.message);
-    res.status(500).json({ success: false, error: "Failed to fetch products" });
+    console.error("❌ [FETCH PRODUCTS] CRITICAL ERROR:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch products: " + err.message });
   }
 });
 
@@ -536,8 +598,8 @@ app.get("/api/sellers", (req, res) => {
     }
     res.json({ success: true, sellers });
   } catch (err) {
-    console.error("❌ [FETCH SELLERS] Error:", err.message);
-    res.status(500).json({ success: false, error: "Failed to fetch sellers" });
+    console.error("❌ [FETCH SELLERS] CRITICAL ERROR:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch sellers: " + err.message });
   }
 });
 

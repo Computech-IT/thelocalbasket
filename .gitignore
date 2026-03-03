@@ -5,3 +5,6 @@ sessions/
 .DS_Store
 public/images/*
 !public/images/placeholder.jpg
+!public/images/logo.PNG
+!public/images/favicon.png
+!public/images/images.png
