@@ -300,7 +300,7 @@
             const res = await fetch('/api/seller/dashboard');
             const data = await res.json();
             if (data.success) {
-                document.getElementById('statRevenue').textContent = `₹${data.stats.revenue.toFixed(2)}`;
+                document.getElementById('statRevenue').textContent = `₹${Number(data.stats.revenue).toFixed(2)}`;
                 document.getElementById('statProducts').textContent = data.stats.products;
 
                 const body = document.getElementById('recentSalesBody');
@@ -310,7 +310,7 @@
             <tr>
               <td>${sale.product_name}</td>
               <td>${sale.qty}</td>
-              <td>₹${sale.total_price.toFixed(2)}</td>
+              <td>₹${Number(sale.total_price).toFixed(2)}</td>
               <td>${new Date(sale.sale_date).toLocaleDateString()}</td>
               <td>${sale.customer_email}</td>
             </tr>
@@ -333,7 +333,7 @@
             <tr>
               <td><img src="${p.image}" class="product-img-preview"></td>
               <td>${p.name}</td>
-              <td>₹${p.price.toFixed(2)}</td>
+              <td>₹${Number(p.price).toFixed(2)}</td>
               <td>${p.qty}</td>
               <td>
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})"><i class="bi bi-pencil"></i></button>

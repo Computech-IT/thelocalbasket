@@ -420,7 +420,7 @@
             <tr>
               <td>${sale.product_name}</td>
               <td>${sale.qty}</td>
-              <td>₹${sale.total_price.toFixed(2)}</td>
+              <td>₹${Number(sale.total_price).toFixed(2)}</td>
               <td>${new Date(sale.sale_date).toLocaleDateString()}</td>
               <td>${sale.customer_email}</td>
             </tr>
@@ -441,7 +441,7 @@
               <td><img src="${p.image}" class="product-img-preview"></td>
               <td>${p.name}</td>
               <td><span class="badge bg-secondary">${p.business_name}</span></td>
-              <td>₹${p.price.toFixed(2)}</td>
+              <td>₹${Number(p.price).toFixed(2)}</td>
               <td>${p.qty}</td>
               <td>
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})"><i class="bi bi-pencil"></i></button>
