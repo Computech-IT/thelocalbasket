@@ -232,6 +232,7 @@ app.use(helmet({
       "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://apis.google.com"],
       "frame-src": ["'self'", "https://api.razorpay.com", "https://tds.razorpay.com", "https://checkout.razorpay.com"],
       "img-src": ["'self'", "data:", "https://*.razorpay.com"],
+      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in"],
     },
   },
 }));
