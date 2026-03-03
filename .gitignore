@@ -3,7 +3,7 @@ node_modules/
 products.db
 sessions/
 .DS_Store
-public/images/*
+#public/images/*
 !public/images/placeholder.jpg
 !public/images/logo.PNG
 !public/images/favicon.png
