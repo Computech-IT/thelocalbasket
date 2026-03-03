@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Basket | Seller Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-bg: #1a1a1a;
+            --sidebar-hover: #2d2d2d;
+            --accent: #25D366;
+            --accent-hover: #1eb157;
+            --bg: #f5f7fa;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .sidebar {
+            height: 100vh;
+            width: 260px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: var(--sidebar-bg);
+            color: #fff;
+            padding-top: 2rem;
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+
+        .sidebar-brand {
+            padding: 0 1.5rem 2rem;
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+
+        .nav-link {
+            padding: 0.8rem 1.5rem;
+            color: #adb5bd;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: #fff;
+            background: var(--sidebar-hover);
+        }
+
+        .nav-link.active {
+            border-right: 4px solid var(--accent);
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .table-container {
+            background: #fff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-top: 2rem;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1.2rem;
+            font-weight: 600;
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-hover);
+            color: #fff;
+        }
+
+        .product-img-preview {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">LOCAL BASKET</div>
+        <nav class="nav flex-column">
+            <a class="nav-link active" href="#" onclick="showSection('overview')"><i class="bi bi-grid"></i>
+                Overview</a>
+            <a class="nav-link" href="#" onclick="showSection('products')"><i class="bi bi-box"></i> My Products</a>
+            <div class="mt-auto">
+                <hr class="mx-3 opacity-25">
+                <a class="nav-link text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-left"></i>
+                    Logout</a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 id="sectionTitle">Overview</h2>
+            <div id="userInfo" class="text-muted small">Seller Panel</div>
+        </div>
+
+        <!-- Overview Section -->
+        <div id="overviewSection">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i
+                                class="bi bi-currency-rupee"></i></div>
+                        <div class="text-muted small">Earnings</div>
+                        <h3 id="statRevenue">₹0.00</h3>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-box-seam"></i>
+                        </div>
+                        <div class="text-muted small">Active Products</div>
+                        <h3 id="statProducts">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <h5>My Recent Sales</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentSalesBody">
+                            <!-- Dynamically filled -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Section -->
+        <div id="productsSection" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Manage Products</h5>
+                <button class="btn btn-accent" onclick="openProductModal()"><i class="bi bi-plus-lg"></i> Add
+                    Product</button>
+            </div>
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Image</th>
+                                <th>Name</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTableBody">
+                            <!-- Dynamically filled -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="productForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="productModalTitle">Add Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="productId">
+                        <div class="mb-3">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="pName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="pDesc" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Price (₹)</label>
+                                <input type="number" step="0.01" class="form-control" id="pPrice" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="pQty" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Product Image</label>
+                            <input type="file" class="form-control" id="pImage" accept="image/*">
+                            <small class="text-muted">Leave empty to keep existing image</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-accent">Save Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let productModal;
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            productModal = new bootstrap.Modal(document.getElementById('productModal'));
+            checkAuth();
+            loadDashboard();
+
+            document.getElementById('productForm').addEventListener('submit', handeProductSubmit);
+        });
+
+        async function checkAuth() {
+            const res = await fetch('/api/auth/me');
+            const data = await res.json();
+            if (!data.success || data.user.role !== 'seller') {
+                window.location.href = '/login.html';
+            }
+            currentUser = data.user;
+            document.getElementById('userInfo').textContent = `Seller: ${data.user.username}`;
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+
+        function showSection(section) {
+            document.getElementById('overviewSection').style.display = section === 'overview' ? 'block' : 'none';
+            document.getElementById('productsSection').style.display = section === 'products' ? 'block' : 'none';
+
+            document.getElementById('sectionTitle').textContent = section.charAt(0).toUpperCase() + section.slice(1);
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.textContent.toLowerCase().includes(section)) link.classList.add('active');
+            });
+
+            if (section === 'products') loadProducts();
+        }
+
+        async function loadDashboard() {
+            const res = await fetch('/api/seller/dashboard');
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('statRevenue').textContent = `₹${data.stats.revenue.toFixed(2)}`;
+                document.getElementById('statProducts').textContent = data.stats.products;
+
+                const body = document.getElementById('recentSalesBody');
+                body.innerHTML = '';
+                data.recentSales.forEach(sale => {
+                    body.innerHTML += `
+            <tr>
+              <td>${sale.product_name}</td>
+              <td>${sale.qty}</td>
+              <td>₹${sale.total_price.toFixed(2)}</td>
+              <td>${new Date(sale.sale_date).toLocaleDateString()}</td>
+              <td>${sale.customer_email}</td>
+            </tr>
+          `;
+                });
+            }
+        }
+
+        async function loadProducts() {
+            const res = await fetch('/api/products');
+            const data = await res.json();
+            if (data.success) {
+                const body = document.getElementById('productTableBody');
+                body.innerHTML = '';
+                // Filter products for this seller (the backend already has a check but we can also hide in UI)
+                // Actually, the public /api/products returns ALL. For seller dashboard, it might be better to have an owned products API.
+                // For now, I'll just filter in JS as I don't want to add TOO many routes yet.
+                data.products.filter(p => Number(p.seller_id) === Number(currentUser.id)).forEach(p => {
+                    body.innerHTML += `
+            <tr>
+              <td><img src="${p.image}" class="product-img-preview"></td>
+              <td>${p.name}</td>
+              <td>₹${p.price.toFixed(2)}</td>
+              <td>${p.qty}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})"><i class="bi bi-trash"></i></button>
+              </td>
+            </tr>
+          `;
+                });
+            }
+        }
+
+        function openProductModal() {
+            document.getElementById('productModalTitle').textContent = 'Add Product';
+            document.getElementById('productId').value = '';
+            document.getElementById('productForm').reset();
+            productModal.show();
+        }
+
+        function editProduct(p) {
+            document.getElementById('productModalTitle').textContent = 'Edit Product';
+            document.getElementById('productId').value = p.id;
+            document.getElementById('pName').value = p.name;
+            document.getElementById('pDesc').value = p.description;
+            document.getElementById('pPrice').value = p.price;
+            document.getElementById('pQty').value = p.qty;
+            productModal.show();
+        }
+
+        async function handeProductSubmit(e) {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+
+            const id = document.getElementById('productId').value;
+            const formData = new FormData();
+            formData.append('name', document.getElementById('pName').value);
+            formData.append('description', document.getElementById('pDesc').value);
+            formData.append('price', document.getElementById('pPrice').value);
+            formData.append('qty', document.getElementById('pQty').value);
+
+            const imgFile = document.getElementById('pImage').files[0];
+            if (imgFile) formData.append('image', imgFile);
+
+            const url = id ? `/api/products/${id}` : '/api/products';
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, { method, body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    productModal.hide();
+                    loadProducts();
+                    loadDashboard();
+                } else {
+                    alert("Error: " + (data.error || "Unknown error occurred"));
+                }
+            } catch (err) {
+                alert("Connection failed: " + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Save Product';
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    loadProducts();
+                    loadDashboard();
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

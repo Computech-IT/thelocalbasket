@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.ico" />
+<title>FAQs - The Local Basket</title>
+<style>:root{--primary:#2f3d2f;--secondary:#fffdf9;--accent:#f08a5d;--accent2:#f4a261;--text-dark:#1e1e1e;--muted:#6b6b6b}*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Poppins',sans-serif;background:var(--secondary);color:var(--text-dark);scroll-behavior:smooth}h1,h2,h3,h4,h5{font-family:'Playfair Display',serif}.navbar{background:#fffdf9;box-shadow:0 4px 15px rgba(0,0,0,0.05);position:sticky;top:0;z-index:999}.navbar-brand{font-weight:700;font-size:1.5rem;color:var(--primary);display:flex;align-items:center;text-decoration:none}.navbar-brand img{height:45px;border-radius:10px;margin-right:10px;box-shadow:0 3px 8px rgba(0,0,0,0.15)}.navbar-nav .nav-link{font-weight:500;color:var(--primary);margin:0 10px;position:relative}.navbar-nav .nav-link::after{content:'';position:absolute;bottom:-5px;left:0;width:0;height:2px;background:var(--accent);transition:.3s}.navbar-nav .nav-link:hover::after{width:100%}.navbar-nav .nav-link:hover{color:var(--accent)}.hero{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;text-align:center;padding:120px 30px 100px;border-radius:0 0 40% 40%/0 0 15% 15%;box-shadow:0 10px 30px rgba(0,0,0,0.15)}.hero h1{font-size:2.8rem;margin-bottom:15px}.hero p{font-size:1.1rem;opacity:.9;max-width:700px;margin:0 auto}.container-main{max-width:950px;margin:0 auto;padding:80px 20px 100px}.faq-card{background:#fff;border-radius:16px;box-shadow:0 8px 25px rgba(0,0,0,0.06);margin-bottom:25px;overflow:hidden;transition:.3s ease}.faq-card:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,0.08)}.faq-header{padding:22px 30px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-weight:600;font-size:1.05rem;color:var(--primary)}.faq-header .toggle-icon{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;transition:transform .3s,background .3s}.faq-card.active .toggle-icon{transform:rotate(45deg);background:var(--accent2)}.faq-body{max-height:0;overflow:hidden;padding:0 30px;color:var(--muted);line-height:1.8;transition:all .5s cubic-bezier(0.23,1,0.32,1);opacity:0}.faq-card.active .faq-body{max-height:500px;padding:0 30px 25px;opacity:1}.section-title{text-align:center;font-weight:700;font-size:1.6rem;color:var(--primary);margin-bottom:35px;position:relative}.section-title::after{content:"";width:70px;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));position:absolute;bottom:-10px;left:50%;transform:translateX(-50%)}.contact-box{margin-top:70px;padding:60px 35px;background:linear-gradient(135deg,var(--accent2),var(--accent));border-radius:25px;color:#fff;text-align:center;box-shadow:0 10px 25px rgba(0,0,0,0.08)}.contact-box h3{font-size:2rem;margin-bottom:15px}.contact-button{display:inline-block;background:#fff;color:var(--primary);font-weight:600;text-decoration:none;padding:14px 38px;border-radius:30px;margin-top:20px;transition:.3s ease}.contact-button:hover{background:var(--primary);color:#fff;transform:translateY(-3px)}footer{background:var(--primary);color:#fffdf9;text-align:center;padding:40px 20px 20px;font-size:.9em}.footer-links{display:flex;justify-content:center;gap:25px;flex-wrap:wrap;margin-bottom:10px}.footer-links a{color:#fffdf9;text-decoration:none;font-weight:500}.footer-links a:hover{color:var(--accent2)}@media(max-width:768px){.hero h1{font-size:2.2rem}.faq-header{font-size:1rem}}</style>
+
+</head>
+
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">
+      <img src="images/logo.png" alt="The Local Basket Logo" />
+      The Local Basket
+    </a>
+   
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <h1>Frequently Asked Questions</h1>
+  <p>Got questions? We’ve got answers — from orders and delivery to payments and product quality.</p>
+</section>
+
+<!-- Main Content -->
+<div class="container-main">
+  <h2 class="section-title">Shipping & Delivery</h2>
+
+  <div class="faq-card">
+    <div class="faq-header" onclick="toggleFAQ(this)">
+      How long does delivery take?
+      <div class="toggle-icon">+</div>
+    </div>
+    <div class="faq-body">
+      Delivery usually takes 2–3 business days from order confirmation. Orders placed on weekends or holidays are processed the next business day.
+    </div>
+  </div>
+
+  <div class="faq-card">
+    <div class="faq-header" onclick="toggleFAQ(this)">
+      Do you deliver across India?
+      <div class="toggle-icon">+</div>
+    </div>
+    <div class="faq-body">
+      Yes! We offer PAN-India delivery — reaching metros, towns, and remote areas across all states and union territories.
+    </div>
+  </div>
+
+  <div class="faq-card">
+    <div class="faq-header" onclick="toggleFAQ(this)">
+      Can I track my order?
+      <div class="toggle-icon">+</div>
+    </div>
+    <div class="faq-body">
+      Absolutely. Once shipped, you’ll receive an SMS and email with a tracking link to check your order status anytime.
+    </div>
+  </div>
+
+  <h2 class="section-title mt-5">Payments & Orders</h2>
+
+  <div class="faq-card">
+    <div class="faq-header" onclick="toggleFAQ(this)">
+      What payment options are available?
+      <div class="toggle-icon">+</div>
+    </div>
+    <div class="faq-body">
+      We accept UPI, credit/debit cards, net banking, and wallets. All payments are securely processed through encrypted gateways.
+    </div>
+  </div>
+
+  <div class="faq-card">
+    <div class="faq-header" onclick="toggleFAQ(this)">
+      Can I cancel or modify my order?
+      <div class="toggle-icon">+</div>
+    </div>
+    <div class="faq-body">
+      Yes, you can modify or cancel within 1 hour of placing your order. Please contact support immediately for help.
+    </div>
+  </div>
+
+  <div class="faq-card">
+    <div class="faq-header" onclick="toggleFAQ(this)">
+      Are all products authentic and handmade?
+      <div class="toggle-icon">+</div>
+    </div>
+    <div class="faq-body">
+      100%! Every product is sourced from verified local artisans and small-scale creators — ensuring authenticity and quality.
+    </div>
+  </div>
+
+  <div class="contact-box">
+    <h3>Still Have Questions?</h3>
+    <p>We’re always happy to help! Reach out to our friendly support team for quick assistance.</p>
+    <a href="contactus.html" class="contact-button">Contact Support</a>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-links">
+    <a href="index.html">Home</a>
+    <a href="contactus.html">Contact</a>
+  </div>
+  <p>&copy; 2025 The Local Basket · Crafted with ❤️ for our community</p>
+</footer>
+
+<script>
+function toggleFAQ(e){const t=e.parentElement,n=document.querySelectorAll(".faq-card");n.forEach(e=>{e!==t&&e.classList.remove("active")}),t.classList.toggle("active")}
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Return Policy - Local Basket</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23C5A47E'>LB</text></svg>">
+<style>
+body{margin:0;font-family:'Poppins',sans-serif;background:#fdfcf8;color:#212529;scroll-behavior:smooth}a{text-decoration:none;transition:.3s}a:hover{text-decoration:none;color:#f08a5d}
+/* Navbar */
+.navbar{background:#fdfcf8;box-shadow:0 4px 15px rgba(0,0,0,.08)}
+.navbar-brand{font-weight:700;font-size:1.5rem;display:flex;align-items:center;gap:10px;color:#2b3a2b}
+.navbar-brand img{height:40px}
+.navbar-brand:hover{color:#f08a5d}
+.nav-link{color:#2b3a2b;margin:0 10px;font-weight:500}
+.nav-link:hover{color:#f08a5d}
+/* Hero */
+.hero{background:linear-gradient(135deg,#2b3a2b,#f08a5d);color:#fff;text-align:center;padding:80px 20px;border-radius:0 0 50% 50%/0 0 15% 15%;box-shadow:0 15px 50px rgba(0,0,0,.1)}
+.hero h1{font-size:3rem;margin-bottom:15px;font-weight:700}
+.hero p{font-size:1.2rem;opacity:.9}
+/* Highlight Box */
+.highlight-box{background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;padding:35px;border-radius:20px;text-align:center;margin-bottom:50px}
+.highlight-box h3{font-size:1.8rem;margin-bottom:10px}
+.highlight-box p{font-size:1.1rem;opacity:.95}
+/* Cards and Process */
+.info-grid,.process-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:30px;margin-bottom:50px}
+.info-card,.process-card{background:#fff;padding:25px;border-radius:20px;box-shadow:0 8px 25px rgba(0,0,0,.08);transition:.6s;opacity:0;transform:translateY(30px);display:flex;flex-direction:column;align-items:flex-start}
+.info-card.visible,.process-card.visible{opacity:1;transform:translateY(0)}
+.info-card:hover,.process-card:hover{transform:translateY(-5px);box-shadow:0 12px 35px rgba(0,0,0,.15)}
+.info-card h3,.process-card h4{color:#2b3a2b;margin-bottom:12px;display:flex;align-items:center;gap:12px;font-size:1.4rem}
+.info-card p,.process-card p{color:#555;font-size:1.05rem;line-height:1.7}
+.info-card ul,.non-returnable ul,.conditions-list{padding-left:20px;color:#555;font-size:1.05rem;line-height:1.7;margin-top:10px}
+.icon-circle{width:40px;height:40px;background:#f08a5d;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:1.2rem}
+.process-number{width:50px;height:50px;background:linear-gradient(135deg,#2b3a2b,#f08a5d);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:bold;margin-bottom:15px}
+/* Conditions Section */
+.conditions-section,.non-returnable{padding:35px;border-radius:20px;margin-bottom:40px}
+.conditions-section{background:#fff5e6;border:2px dashed #ffa726;text-align:center}
+.conditions-section h3{color:#e65100;font-size:1.7rem;margin-bottom:20px}
+.non-returnable{background:#ffebee;border:2px dashed #ef5350;text-align:center}
+.non-returnable h3{color:#c62828;font-size:1.7rem;margin-bottom:20px}
+/* Footer */
+footer{background:#2b3a2b;color:#fdfcf8;padding:40px 0;text-align:center}
+footer a{color:#fdfcf8;margin:0 8px;font-weight:500}
+footer a:hover{color:#f08a5d}
+@media(max-width:768px){.hero h1{font-size:2rem}.hero p{font-size:1rem}.info-grid,.process-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="index.html">
+      <img src="images/logo.png" alt="The Local Basket Logo" /> The Local Basket
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="products.html">Products</a></li>
+        <li class="nav-item"><a class="nav-link" href="faq.html">FAQ</a></li>
+        <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<br><br>
+
+<!-- Hero -->
+<div class="hero">
+    <h1>🔄 Easy Returns & Refunds</h1>
+    <p>Your satisfaction is our top priority</p>
+</div>
+
+<div class="container">
+
+    <!-- Highlight Box -->
+    <div class="highlight-box">
+        <h3>⏰ 3-Day Return Window</h3>
+        <p>Return products within 3 days after delivery for a full refund or exchange</p>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="info-grid">
+        <div class="info-card">
+            <h3><span class="icon-circle">✓</span> Eligible Returns</h3>
+            <p>Products can be returned if:</p>
+            <ul>
+                <li>Damaged or defective</li>
+                <li>Wrong item delivered</li>
+                <li>Doesn’t match description</li>
+                <li>Unused and changed your mind</li>
+            </ul>
+        </div>
+        <div class="info-card">
+            <h3><span class="icon-circle">💰</span> Refund Process</h3>
+            <p>Refunds processed within 5-7 business days to your original payment method after verification.</p>
+        </div>
+        <div class="info-card">
+            <h3><span class="icon-circle">📞</span> Easy to Initiate</h3>
+            <p>Contact support via phone, email, or website to start the return process. We guide you every step.</p>
+        </div>
+    </div>
+
+    <!-- Process Section -->
+    <div class="process-section">
+        <h2>📋 How to Return Your Order</h2>
+        <div class="process-grid">
+            <div class="process-card">
+                <div class="process-number">1</div>
+                <h4>Contact Us</h4>
+                <p>Reach out within 3 days of delivery</p>
+            </div>
+            <div class="process-card">
+                <div class="process-number">2</div>
+                <h4>Get Approval</h4>
+                <p>Receive return authorization and instructions</p>
+            </div>
+            <div class="process-card">
+                <div class="process-number">3</div>
+                <h4>Pack Securely</h4>
+                <p>Use original packaging with all accessories</p>
+            </div>
+            <div class="process-card">
+                <div class="process-number">4</div>
+                <h4>Ship Back</h4>
+                <p>Send the package via our provided shipping label</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conditions Section -->
+    <div class="conditions-section">
+        <h3>📝 Return Conditions</h3>
+        <ul class="conditions-list">
+            <li>Return within 3 days from delivery</li>
+            <li>Items unused, unwashed, in original condition</li>
+            <li>All tags, labels, and packaging intact</li>
+            <li>Include all accessories, manuals, free gifts</li>
+            <li>Invoice or order confirmation required</li>
+            <li>No damage due to misuse</li>
+        </ul>
+    </div>
+
+    <!-- Non-returnable Items -->
+    <div class="non-returnable">
+        <h3>❌ Non-Returnable Items</h3>
+        <ul>
+            <li>Perishable goods (food, flowers, etc.)</li>
+            <li>Personal care & hygiene products</li>
+            <li>Intimate or sanitary items</li>
+            <li>Sale or clearance items (unless defective)</li>
+            <li>Customized/personalized products</li>
+            <li>Digital products or software</li>
+        </ul>
+    </div>
+
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <p class="mb-2">&copy; 2025 The Local Basket. All Rights Reserved.</p>
+    <div>
+      <a href="index.html">Home</a> | 
+      <a href="products.html">Products</a> | 
+      <a href="faq.html">FAQ</a> | 
+      <a href="contact.html">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Scroll animations
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting){
+      entry.target.classList.add('visible');
+    }
+  });
+},{threshold:0.2});
+document.querySelectorAll('.info-card,.process-card,.highlight-box,.conditions-section,.non-returnable').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
