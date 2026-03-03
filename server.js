@@ -82,6 +82,7 @@ app.use("/test-email", authLimiter);
 app.use("/create-razorpay-order", orderLimiter);
 
 // Explicit routes for HTML files (improves reliability)
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
 app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
 app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
 app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public/seller.html")));
