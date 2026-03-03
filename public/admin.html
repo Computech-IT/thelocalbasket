@@ -409,7 +409,7 @@
             const res = await fetch('/api/admin/dashboard');
             const data = await res.json();
             if (data.success) {
-                document.getElementById('statRevenue').textContent = `₹${data.stats.revenue.toFixed(2)}`;
+                document.getElementById('statRevenue').textContent = `₹${Number(data.stats.revenue).toFixed(2)}`;
                 document.getElementById('statProducts').textContent = data.stats.products;
                 document.getElementById('statSellers').textContent = data.stats.sellers;
 
@@ -490,7 +490,7 @@
                     <td>#${sale.id}</td>
                     <td>${sale.product_name}</td>
                     <td>${sale.qty}</td>
-                    <td>₹${sale.total_price.toFixed(2)}</td>
+                    <td>₹${Number(sale.total_price).toFixed(2)}</td>
                     <td>${new Date(sale.sale_date).toLocaleString()}</td>
                     <td>${sale.customer_email}</td>
                     <td><small>${sale.payment_id}</small></td>
