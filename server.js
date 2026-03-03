@@ -244,7 +244,7 @@ app.disable("x-powered-by");
 // Session Setup
 // ========================
 app.use(session({
-  store: new FileStore({ path: "./sessions" }),
+  store: new FileStore({ path: path.join(__dirname, "sessions") }),
   secret: process.env.SESSION_SECRET || "local-basket-dev-secret",
   resave: false,
   saveUninitialized: false,
@@ -647,7 +647,7 @@ app.get("/api/products", async (req, res) => {
     let query = `
       SELECT p.*, u.business_name 
       FROM products p 
-      JOIN users u ON p.seller_id = u.id
+      LEFT JOIN users u ON p.seller_id = u.id
     `;
     let params = [];
 
@@ -677,7 +677,7 @@ app.get("/api/sellers", async (req, res) => {
       sellers = await db.prepare(`
         SELECT DISTINCT u.id, u.business_name 
         FROM users u
-        JOIN products p ON u.id = p.seller_id
+        LEFT JOIN products p ON u.id = p.seller_id
         WHERE u.role = 'seller' OR u.role = 'admin'
       `).all();
     }
