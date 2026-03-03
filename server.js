@@ -35,15 +35,16 @@ REQUIRED_ENV.forEach(key => {
 // Database Provider Abstracted
 // ========================
 let dbConn;
+let dbWrapper;
 
 async function getDb() {
-  if (dbConn) return dbConn;
+  if (dbWrapper) return dbWrapper;
 
   const isProd = process.env.DB_HOST ? true : false;
 
   if (isProd) {
     console.log("🛢️ Connecting to MySQL (Production)...");
-    const pool = mysql.createPool({
+    dbConn = mysql.createPool({
       host: process.env.DB_HOST,
       port: process.env.DB_PORT || 3306,
       user: process.env.DB_USER,
@@ -53,10 +54,9 @@ async function getDb() {
       connectionLimit: 10,
       queueLimit: 0
     });
-    dbConn = pool;
 
     // Wrapper for a better unified experience
-    const wrapper = {
+    dbWrapper = {
       prepare: (sql) => ({
         run: async (...params) => {
           const [result] = await dbConn.query(sql, params);
@@ -82,11 +82,11 @@ async function getDb() {
       console.error("❌ MySQL Connection Test: FAILED", err.message);
     }
 
-    return wrapper;
+    return dbWrapper;
   } else {
     console.log("📂 Connecting to SQLite (Local)...");
     const sqliteDb = new (require("better-sqlite3"))("./products.db");
-    return {
+    dbWrapper = {
       prepare: (sql) => ({
         run: async (...params) => sqliteDb.prepare(sql).run(...params),
         get: async (...params) => sqliteDb.prepare(sql).get(...params),
@@ -94,6 +94,7 @@ async function getDb() {
       }),
       close: () => sqliteDb.close()
     };
+    return dbWrapper;
   }
 }
 
