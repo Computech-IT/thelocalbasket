@@ -16,6 +16,7 @@ const session = require("express-session");
 const FileStore = require("session-file-store")(session);
 const multer = require("multer");
 const rateLimit = require("express-rate-limit");
+const mysql = require("mysql2/promise");
 require("dotenv").config();
 
 const app = express();
@@ -30,73 +31,129 @@ REQUIRED_ENV.forEach(key => {
   }
 });
 
-const Database = require("better-sqlite3");
-const db = new Database("./products.db");
+// ========================
+// Database Provider Abstracted
+// ========================
+let dbConn;
+
+async function getDb() {
+  if (dbConn) return dbConn;
+
+  const dbType = process.env.DB_TYPE || "sqlite";
+
+  if (dbType === "mysql") {
+    console.log("🛢️ Connecting to MySQL...");
+    dbConn = await mysql.createConnection({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+    });
+
+    // Wrapper for a better unified experience
+    return {
+      prepare: (sql) => ({
+        run: async (...params) => {
+          const [result] = await dbConn.execute(sql, params);
+          return { lastInsertRowid: result.insertId, changes: result.affectedRows };
+        },
+        get: async (...params) => {
+          const [rows] = await dbConn.execute(sql, params);
+          return rows[0] || null;
+        },
+        all: async (...params) => {
+          const [rows] = await dbConn.execute(sql, params);
+          return rows;
+        }
+      })
+    };
+  } else {
+    console.log("📂 Connecting to SQLite...");
+    const sqliteDb = new (require("better-sqlite3"))("./products.db");
+    return {
+      prepare: (sql) => ({
+        run: async (...params) => sqliteDb.prepare(sql).run(...params),
+        get: async (...params) => sqliteDb.prepare(sql).get(...params),
+        all: async (...params) => sqliteDb.prepare(sql).all(...params)
+      }),
+      close: () => sqliteDb.close()
+    };
+  }
+}
 
 // ========================
 // Database Bootstrapping
 // ========================
-function bootstrapDatabase() {
+async function bootstrapDatabase() {
   console.log("🛠️ Checking database schema...");
+  const db = await getDb();
+  const dbType = process.env.DB_TYPE || "sqlite";
+
+  const isMySQL = dbType === "mysql";
+  const PK = isMySQL ? "INTEGER PRIMARY KEY AUTO_INCREMENT" : "INTEGER PRIMARY KEY AUTOINCREMENT";
+  const TEXT = isMySQL ? "TEXT" : "TEXT";
+  const REAL = isMySQL ? "DECIMAL(10,2)" : "REAL";
 
   // Users Table
-  db.prepare(`
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'seller',
-      email TEXT UNIQUE,
-      business_name TEXT
+      id ${PK},
+      username VARCHAR(255) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      role VARCHAR(50) NOT NULL DEFAULT 'seller',
+      email VARCHAR(255) UNIQUE,
+      business_name VARCHAR(255)
     )
   `).run();
 
   // Products Table
-  db.prepare(`
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS products (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE,
-      description TEXT,
-      price REAL NOT NULL,
-      qty REAL NOT NULL,
-      image TEXT,
+      id ${PK},
+      name VARCHAR(255) NOT NULL UNIQUE,
+      description ${TEXT},
+      price ${REAL} NOT NULL,
+      qty ${REAL} NOT NULL,
+      image VARCHAR(255),
       seller_id INTEGER,
       FOREIGN KEY(seller_id) REFERENCES users(id)
     )
   `).run();
 
   // Sales Table
-  db.prepare(`
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS sales (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id ${PK},
       product_id INTEGER,
       qty INTEGER NOT NULL,
-      total_price REAL NOT NULL,
+      total_price ${REAL} NOT NULL,
       sale_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      customer_email TEXT,
-      payment_id TEXT,
+      customer_email VARCHAR(255),
+      payment_id VARCHAR(255),
       FOREIGN KEY(product_id) REFERENCES products(id)
     )
   `).run();
 
   // Coupons Table
-  db.prepare(`
+  await db.prepare(`
     CREATE TABLE IF NOT EXISTS coupons (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code TEXT NOT NULL UNIQUE,
-      type TEXT NOT NULL,
-      value REAL NOT NULL,
-      min_purchase REAL DEFAULT 0,
-      max_discount REAL,
+      id ${PK},
+      code VARCHAR(50) NOT NULL UNIQUE,
+      type VARCHAR(50) NOT NULL,
+      value ${REAL} NOT NULL,
+      min_purchase ${REAL} DEFAULT 0,
+      max_discount ${REAL},
       expires DATETIME,
-      message TEXT
+      message ${TEXT}
     )
   `).run();
 
   console.log("✅ Database schema is up to date.");
 }
 
-bootstrapDatabase();
+bootstrapDatabase().catch(err => {
+  console.error("❌ CRITICAL: Database bootstrapping failed:", err);
+});
 
 // ========================
 // Middleware & Security
@@ -439,7 +496,8 @@ app.post("/api/auth/login", async (req, res) => {
   if (!username || !password) return res.status(400).json({ success: false, error: "Missing credentials" });
 
   try {
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+    const db = await getDb();
+    const user = await db.prepare("SELECT * FROM users WHERE username = ?").get(username);
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return res.status(401).json({ success: false, error: "Invalid username or password" });
     }
@@ -452,6 +510,7 @@ app.post("/api/auth/login", async (req, res) => {
     };
     res.json({ success: true, user: req.session.user });
   } catch (err) {
+    console.error("❌ Login error:", err);
     res.status(500).json({ success: false, error: "Login failed" });
   }
 });
@@ -531,16 +590,17 @@ app.post("/razorpay-webhook", async (req, res) => {
     };
 
     // 💰 Record Sale in Database
+    const db = await getDb();
     const insertSale = db.prepare(`
       INSERT INTO sales (product_id, qty, total_price, customer_email, payment_id)
       VALUES (?, ?, ?, ?, ?)
     `);
 
     for (const item of orderData.items) {
-      insertSale.run(item.id, item.qty, item.price * item.qty, orderData.shipping.email, orderData.paymentId);
+      await insertSale.run(item.id, item.qty, item.price * item.qty, orderData.shipping.email, orderData.paymentId);
 
       // Update inventory (optional but good)
-      db.prepare("UPDATE products SET qty = qty - ? WHERE id = ?").run(item.qty, item.id);
+      await db.prepare("UPDATE products SET qty = qty - ? WHERE id = ?").run(item.qty, item.id);
     }
 
     sendOrderEmails(orderData).then(() => console.log("📧 [WEBHOOK] Emails sent."))
@@ -557,9 +617,10 @@ app.post("/razorpay-webhook", async (req, res) => {
 BigInt.prototype.toJSON = function () { return Number(this); };
 
 // Fetch products (public)
-app.get("/api/products", (req, res) => {
+app.get("/api/products", async (req, res) => {
   const { seller_id } = req.query;
   try {
+    const db = await getDb();
     let query = `
       SELECT p.*, u.business_name 
       FROM products p 
@@ -572,7 +633,7 @@ app.get("/api/products", (req, res) => {
       params.push(seller_id);
     }
 
-    const products = db.prepare(query).all(...params);
+    const products = await db.prepare(query).all(...params);
     res.json({ success: true, products });
   } catch (err) {
     console.error("❌ [FETCH PRODUCTS] CRITICAL ERROR:", err);
@@ -581,15 +642,16 @@ app.get("/api/products", (req, res) => {
 });
 
 // Fetch all sellers (Admin gets all, Public gets only those with products)
-app.get("/api/sellers", (req, res) => {
+app.get("/api/sellers", async (req, res) => {
   try {
+    const db = await getDb();
     const { all } = req.query;
     let sellers;
     if (all === "true" && req.session.user && req.session.user.role === "admin") {
-      sellers = db.prepare("SELECT id, username, email, role, business_name FROM users WHERE role = 'seller'").all();
+      sellers = await db.prepare("SELECT id, username, email, role, business_name FROM users WHERE role = 'seller'").all();
     } else {
       // Public view: only sellers with products
-      sellers = db.prepare(`
+      sellers = await db.prepare(`
         SELECT DISTINCT u.id, u.business_name 
         FROM users u
         JOIN products p ON u.id = p.seller_id
@@ -612,13 +674,14 @@ app.post("/api/admin/sellers", isAdmin, async (req, res) => {
   }
 
   try {
+    const db = await getDb();
     // Check if user exists
-    const existing = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+    const existing = await db.prepare("SELECT * FROM users WHERE username = ?").get(username);
     if (existing) return res.status(400).json({ success: false, error: "Username already exists" });
 
     const hashedPassword = bcrypt.hashSync(password, 10);
     const stmt = db.prepare("INSERT INTO users (username, password, email, role, business_name) VALUES (?, ?, ?, ?, ?)");
-    const info = stmt.run(username, hashedPassword, email || "", "seller", business_name);
+    const info = await stmt.run(username, hashedPassword, email || "", "seller", business_name);
 
     res.json({ success: true, sellerId: Number(info.lastInsertRowid), message: "Seller account created!" });
   } catch (err) {
@@ -633,6 +696,7 @@ app.put("/api/admin/sellers/:id", isAdmin, async (req, res) => {
   const sellerId = req.params.id;
 
   try {
+    const db = await getDb();
     let query = "UPDATE users SET username = ?, email = ?, business_name = ?";
     let params = [username, email || "", business_name];
 
@@ -644,7 +708,7 @@ app.put("/api/admin/sellers/:id", isAdmin, async (req, res) => {
     query += " WHERE id = ? AND role = 'seller'";
     params.push(sellerId);
 
-    const info = db.prepare(query).run(...params);
+    const info = await db.prepare(query).run(...params);
     if (info.changes === 0) return res.status(404).json({ success: false, error: "Seller not found" });
 
     res.json({ success: true, message: "Seller updated successfully" });
@@ -655,12 +719,13 @@ app.put("/api/admin/sellers/:id", isAdmin, async (req, res) => {
 });
 
 // Admin: Delete Seller
-app.delete("/api/admin/sellers/:id", isAdmin, (req, res) => {
+app.delete("/api/admin/sellers/:id", isAdmin, async (req, res) => {
   const sellerId = req.params.id;
   try {
+    const db = await getDb();
     // Delete their products first as per plan
-    db.prepare("DELETE FROM products WHERE seller_id = ?").run(sellerId);
-    const info = db.prepare("DELETE FROM users WHERE id = ? AND role = 'seller'").run(sellerId);
+    await db.prepare("DELETE FROM products WHERE seller_id = ?").run(sellerId);
+    const info = await db.prepare("DELETE FROM users WHERE id = ? AND role = 'seller'").run(sellerId);
 
     if (info.changes === 0) return res.status(404).json({ success: false, error: "Seller not found" });
     res.json({ success: true, message: "Seller and their products deleted" });
@@ -671,7 +736,7 @@ app.delete("/api/admin/sellers/:id", isAdmin, (req, res) => {
 });
 
 // Add Product (Authenticated)
-app.post("/api/products", isAuthenticated, upload.single("image"), (req, res) => {
+app.post("/api/products", isAuthenticated, upload.single("image"), async (req, res) => {
   console.log("📦 [ADD PRODUCT] Initiated...");
   const { name, description, price, qty } = req.body;
 
@@ -684,8 +749,9 @@ app.post("/api/products", isAuthenticated, upload.single("image"), (req, res) =>
   const seller_id = req.session.user.id;
 
   try {
+    const db = await getDb();
     const stmt = db.prepare("INSERT INTO products (name, description, price, qty, image, seller_id) VALUES (?, ?, ?, ?, ?, ?)");
-    const info = stmt.run(name, description || "", parseFloat(price), parseFloat(qty), image, seller_id);
+    const info = await stmt.run(name, description || "", parseFloat(price), parseFloat(qty), image, seller_id);
 
     console.log("✅ [ADD PRODUCT] Success:", info);
     res.json({
@@ -700,14 +766,15 @@ app.post("/api/products", isAuthenticated, upload.single("image"), (req, res) =>
 });
 
 // Update Product (Authenticated)
-app.put("/api/products/:id", isAuthenticated, upload.single("image"), (req, res) => {
+app.put("/api/products/:id", isAuthenticated, upload.single("image"), async (req, res) => {
   const { name, description, price, qty } = req.body;
   const productId = req.params.id;
   const seller_id = req.session.user.id;
 
   try {
+    const db = await getDb();
     // Check if user owns the product OR is admin
-    const product = db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
+    const product = await db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
     if (!product) return res.status(404).json({ success: false, error: "Product not found" });
     if (req.session.user.role !== "admin" && product.seller_id !== seller_id) {
       return res.status(403).json({ success: false, error: "Forbidden" });
@@ -724,7 +791,7 @@ app.put("/api/products/:id", isAuthenticated, upload.single("image"), (req, res)
     query += " WHERE id = ?";
     params.push(productId);
 
-    db.prepare(query).run(...params);
+    await db.prepare(query).run(...params);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: "Failed to update product" });
@@ -732,18 +799,19 @@ app.put("/api/products/:id", isAuthenticated, upload.single("image"), (req, res)
 });
 
 // Delete Product (Authenticated)
-app.delete("/api/products/:id", isAuthenticated, (req, res) => {
+app.delete("/api/products/:id", isAuthenticated, async (req, res) => {
   const productId = req.params.id;
   const seller_id = req.session.user.id;
 
   try {
-    const product = db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
+    const db = await getDb();
+    const product = await db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
     if (!product) return res.status(404).json({ success: false, error: "Product not found" });
     if (req.session.user.role !== "admin" && product.seller_id !== seller_id) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
-    db.prepare("DELETE FROM products WHERE id = ?").run(productId);
+    await db.prepare("DELETE FROM products WHERE id = ?").run(productId);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: "Failed to delete product" });
@@ -755,12 +823,13 @@ app.delete("/api/products/:id", isAuthenticated, (req, res) => {
 // ========================
 
 // Admin Stats
-app.get("/api/admin/dashboard", isAdmin, (req, res) => {
+app.get("/api/admin/dashboard", isAdmin, async (req, res) => {
   try {
-    const totalSales = db.prepare("SELECT SUM(total_price) as total FROM sales").get();
-    const totalProducts = db.prepare("SELECT COUNT(*) as count FROM products").get();
-    const totalSellers = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'seller'").get();
-    const recentSales = db.prepare(`
+    const db = await getDb();
+    const totalSales = await db.prepare("SELECT SUM(total_price) as total FROM sales").get();
+    const totalProducts = await db.prepare("SELECT COUNT(*) as count FROM products").get();
+    const totalSellers = await db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'seller'").get();
+    const recentSales = await db.prepare(`
       SELECT s.*, p.name as product_name 
       FROM sales s 
       JOIN products p ON s.product_id = p.id 
@@ -782,17 +851,18 @@ app.get("/api/admin/dashboard", isAdmin, (req, res) => {
 });
 
 // Seller Stats
-app.get("/api/seller/dashboard", isAuthenticated, (req, res) => {
+app.get("/api/seller/dashboard", isAuthenticated, async (req, res) => {
   const seller_id = req.session.user.id;
   try {
-    const totalSales = db.prepare(`
+    const db = await getDb();
+    const totalSales = await db.prepare(`
       SELECT SUM(s.total_price) as total 
       FROM sales s 
       JOIN products p ON s.product_id = p.id 
       WHERE p.seller_id = ?
     `).get(seller_id);
-    const totalProducts = db.prepare("SELECT COUNT(*) as count FROM products WHERE seller_id = ?").get(seller_id);
-    const recentSales = db.prepare(`
+    const totalProducts = await db.prepare("SELECT COUNT(*) as count FROM products WHERE seller_id = ?").get(seller_id);
+    const recentSales = await db.prepare(`
       SELECT s.*, p.name as product_name 
       FROM sales s 
       JOIN products p ON s.product_id = p.id 
@@ -814,9 +884,10 @@ app.get("/api/seller/dashboard", isAuthenticated, (req, res) => {
 });
 
 // Fetch coupons
-app.get("/api/coupons", (req, res) => {
+app.get("/api/coupons", async (req, res) => {
   try {
-    const coupons = db.prepare("SELECT * FROM coupons WHERE expires > datetime('now')").all();
+    const db = await getDb();
+    const coupons = await db.prepare("SELECT * FROM coupons WHERE expires > datetime('now')").all();
     res.json(coupons);
   } catch (err) {
     res.status(500).json({ error: "Failed to load coupons" });
@@ -843,10 +914,11 @@ const server = app.listen(PORT, () => {
 });
 
 // Graceful Shutdown
-process.on("SIGTERM", () => {
+process.on("SIGTERM", async () => {
   console.log("SIGTERM received. Shutting down gracefully...");
-  server.close(() => {
-    db.close();
+  server.close(async () => {
+    if (dbConn && typeof dbConn.close === "function") await dbConn.close();
+    if (dbConn && typeof dbConn.end === "function") await dbConn.end();
     console.log("Process terminated.");
   });
 });
