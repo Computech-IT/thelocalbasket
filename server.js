@@ -56,22 +56,33 @@ async function getDb() {
     dbConn = pool;
 
     // Wrapper for a better unified experience
-    return {
+    const wrapper = {
       prepare: (sql) => ({
         run: async (...params) => {
-          const [result] = await dbConn.execute(sql, params);
+          const [result] = await dbConn.query(sql, params);
           return { lastInsertRowid: result.insertId, changes: result.affectedRows };
         },
         get: async (...params) => {
-          const [rows] = await dbConn.execute(sql, params);
+          const [rows] = await dbConn.query(sql, params);
           return rows[0] || null;
         },
         all: async (...params) => {
-          const [rows] = await dbConn.execute(sql, params);
+          const [rows] = await dbConn.query(sql, params);
           return rows;
         }
       })
     };
+
+    // Test connection once
+    try {
+      const conn = await dbConn.getConnection();
+      console.log("✅ MySQL Connection Test: SUCCESS");
+      conn.release();
+    } catch (err) {
+      console.error("❌ MySQL Connection Test: FAILED", err.message);
+    }
+
+    return wrapper;
   } else {
     console.log("📂 Connecting to SQLite (Local)...");
     const sqliteDb = new (require("better-sqlite3"))("./products.db");
@@ -645,7 +656,7 @@ app.get("/api/products", async (req, res) => {
     res.json({ success: true, products });
   } catch (err) {
     console.error("❌ [FETCH PRODUCTS] CRITICAL ERROR:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch products: " + err.message });
+    res.status(500).json({ success: false, error: "Database error: " + err.message });
   }
 });
 
@@ -669,7 +680,7 @@ app.get("/api/sellers", async (req, res) => {
     res.json({ success: true, sellers });
   } catch (err) {
     console.error("❌ [FETCH SELLERS] CRITICAL ERROR:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch sellers: " + err.message });
+    res.status(500).json({ success: false, error: "Database error: " + err.message });
   }
 });
 
