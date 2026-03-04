@@ -164,7 +164,17 @@ async function bootstrapDatabase() {
     )
   `).run();
 
-    console.log("✅ Database schema is up to date.");
+    // Ensure at least one admin exists
+    const admin = await db.prepare("SELECT * FROM users WHERE role = 'admin'").get();
+    if (!admin) {
+      console.log("👤 No admin found. Creating default admin...");
+      const hashed = bcrypt.hashSync("admin123", 10);
+      await db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)")
+        .run("admin", hashed, "admin");
+      console.log("✅ Default admin created: admin / admin123");
+    }
+
+    console.log("✅ Database schema and seeding complete.");
   } catch (err) {
     console.error("⚠️ Database check failed (Non-critical):", err.message);
     // We don't exit here, allowing the server to stay alive for static assets or retry later
@@ -208,39 +218,8 @@ app.use(express.json({
   }
 }));
 
-app.use("/images", express.static(path.join(__dirname, "public", "images")));
-
-// Rate Limiters
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 login requests per window
-  message: { success: false, error: "Too many login attempts, please try again later." }
-});
-
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { success: false, error: "Too many requests from this IP, please try again later." }
-});
-
-const orderLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // Limit each IP to 20 order attempts per hour
-  message: { success: false, error: "Too many order attempts, please try again later." }
-});
-
-app.use("/api/", generalLimiter);
-app.use("/api/auth/login", authLimiter);
-app.use("/test-email", authLimiter);
-app.use("/create-razorpay-order", orderLimiter);
-
-// Rate Limiters Moved Down
-
-// ========================
 // Session Setup
-// ========================
 const sessionSecret = process.env.SESSION_SECRET || "local-basket-dev-secret-key-123";
-
 app.use(session({
   store: new FileStore({
     path: path.join(__dirname, "sessions"),
@@ -260,14 +239,35 @@ app.use(session({
   }
 }));
 
-// Route prioritization: Session is now active
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+// Rate Limiters
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: "Too many login attempts, please try again later." }
+});
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { success: false, error: "Too many requests from this IP, please try again later." }
+});
+const orderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  message: { success: false, error: "Too many order attempts, please try again later." }
+});
+
+app.use("/api/", generalLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/create-razorpay-order", orderLimiter);
+
+// Specialized HTML Routes
 app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
 app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public", "seller.html")));
 
-// Serve other static files
-app.use(express.static(path.join(__dirname, "public")));
+// Static Files
+app.use("/images", express.static(path.join(__dirname, "public", "images")));
+app.use(express.static(path.join(__dirname, "public"), { index: "index.html" }));
 
 // ========================
 // Multer Setup (for Image Uploads)
