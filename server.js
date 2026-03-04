@@ -258,12 +258,12 @@ app.use(session({
   saveUninitialized: false,
   rolling: true, // Refreshes session on every request
   proxy: true,
-  name: "localbasket.sid", // Custom name to avoid generic fingerprints
+  name: "localbasket.sid",
   cookie: {
-    secure: NODE_ENV === "production",
+    secure: "auto", // Automatically detects if HTTPS is used via trust proxy
     httpOnly: true,
     sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
@@ -541,7 +541,17 @@ app.post("/api/auth/login", async (req, res) => {
       role: user.role,
       business_name: user.business_name
     };
-    res.json({ success: true, user: req.session.user });
+
+    // Explicitly save session and log it
+    req.session.save((err) => {
+      if (err) {
+        console.error("❌ [LOGIN] Session save error:", err);
+        return res.status(500).json({ success: false, error: "Session save failed" });
+      }
+      console.log(`✅ [LOGIN] Session saved for: ${user.username}. ID: ${req.sessionID}`);
+      res.json({ success: true, user: req.session.user });
+    });
+    return; // Prevent fallthrough
   } catch (err) {
     console.error("❌ Login error:", err);
     res.status(500).json({ success: false, error: "Login failed" });
