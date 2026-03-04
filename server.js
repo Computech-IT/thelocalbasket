@@ -208,13 +208,6 @@ app.use(express.json({
   }
 }));
 
-// Explicit routes for HTML files (move ABOVE static middleware)
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
-app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
-app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public", "seller.html")));
-
-app.use(express.static(path.join(__dirname, "public")));
 app.use("/images", express.static(path.join(__dirname, "public", "images")));
 
 // Rate Limiters
@@ -266,6 +259,15 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
+
+// Route prioritization: Session is now active
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
+app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
+app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public", "seller.html")));
+
+// Serve other static files
+app.use(express.static(path.join(__dirname, "public")));
 
 // ========================
 // Multer Setup (for Image Uploads)
