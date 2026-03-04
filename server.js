@@ -12,7 +12,8 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const session = require("express-session");
+const FileStore = require("session-file-store")(session);
 const multer = require("multer");
 const rateLimit = require("express-rate-limit");
 const mysql = require("mysql2/promise");
@@ -178,14 +179,12 @@ bootstrapDatabase().catch(err => {
 // Middleware & Security
 // ========================
 if (NODE_ENV === "production") {
-  app.set("trust proxy", true); // Trust all proxies
+  app.set("trust proxy", 1); // Needed for Hostinger/Reverse Proxies
 }
 
 app.use(cors({
   origin: NODE_ENV === "production" ? ["https://thelocalbasket.in", "https://www.thelocalbasket.in"] : true,
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
+  credentials: true
 }));
 
 app.use(express.json({
@@ -193,41 +192,10 @@ app.use(express.json({
     if (req.originalUrl === "/razorpay-webhook") req.rawBody = buf;
   }
 }));
-// ========================
-// Auth JWT Setup
-// ========================
-const JWT_SECRET = process.env.SESSION_SECRET || "local-basket-dev-secret";
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/images", express.static(path.join(__dirname, "public/images")));
 
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  let token = authHeader && authHeader.split(' ')[1];
-
-  // Fallback for strict proxies that strip Authorization headers
-  if (!token) token = req.headers['x-auth-token'];
-
-  if (!token) return res.status(401).json({ success: false, error: "Unauthorized: No token provided" });
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ success: false, error: "Forbidden: Invalid token" });
-    req.user = user;
-    next();
-  });
-}
-
-function isAuthenticated(req, res, next) {
-  authenticateToken(req, res, next);
-}
-
-function isAdmin(req, res, next) {
-  authenticateToken(req, res, () => {
-    if (req.user && req.user.role === "admin") return next();
-    res.status(403).json({ success: false, error: "Access denied: Requires Admin role" });
-  });
-}
-
-// ========================
-// Static Files & Rate Limiters
-// ========================
+// Rate Limiters
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // Limit each IP to 10 login requests per window
@@ -251,40 +219,11 @@ app.use("/api/auth/login", authLimiter);
 app.use("/test-email", authLimiter);
 app.use("/create-razorpay-order", orderLimiter);
 
-// ========================
-// Health Checks & Diagnostics
-// ========================
-app.get("/api/health", async (req, res) => {
-  const dbStatus = { connected: false, type: "unknown", error: null };
-  try {
-    const db = await getDb();
-    const isMySQL = process.env.DB_HOST ? true : false;
-    dbStatus.type = isMySQL ? "MySQL (Production)" : "SQLite (Local)";
-
-    // Simple query test
-    await db.prepare("SELECT 1").get();
-    dbStatus.connected = true;
-  } catch (err) {
-    dbStatus.error = err.message;
-    console.error("❌ Health check DB failed:", err);
-  }
-
-  res.json({
-    status: "ok",
-    node_version: process.version,
-    env: NODE_ENV,
-    db: dbStatus
-  });
-});
-
 // Explicit routes for HTML files (improves reliability)
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
 app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
-app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
-app.get("/seller", (req, res) => res.sendFile(path.join(__dirname, "public/seller.html")));
-
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/images", express.static(path.join(__dirname, "public/images")));
+app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
+app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public/seller.html")));
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -300,6 +239,23 @@ app.use(helmet({
   },
 }));
 app.disable("x-powered-by");
+
+// ========================
+// Session Setup
+// ========================
+app.use(session({
+  store: new FileStore({ path: path.join(__dirname, "sessions") }),
+  secret: process.env.SESSION_SECRET || "local-basket-dev-secret",
+  resave: false,
+  saveUninitialized: false,
+  proxy: true,
+  cookie: {
+    secure: NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // ========================
 // Multer Setup (for Image Uploads)
@@ -392,6 +348,19 @@ function wrapEmail(title, body) {
       © ${new Date().getFullYear()} The Local Basket
     </div>
   </div>`;
+}
+
+// ========================
+// Auth Middlewares
+// ========================
+function isAuthenticated(req, res, next) {
+  if (req.session.user) return next();
+  res.status(401).json({ success: false, error: "Unauthorized" });
+}
+
+function isAdmin(req, res, next) {
+  if (req.session.user && req.session.user.role === "admin") return next();
+  res.status(403).json({ success: false, error: "Access denied" });
 }
 
 // ========================
@@ -556,31 +525,32 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ success: false, error: "Invalid username or password" });
     }
 
-    const payload = {
+    req.session.user = {
       id: user.id,
       username: user.username,
       role: user.role,
       business_name: user.business_name
     };
-
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
-    console.log(`✅ [LOGIN] JWT generated for: ${user.username}`);
-    res.json({ success: true, token, user: payload });
+    res.json({ success: true, user: req.session.user });
   } catch (err) {
     console.error("❌ Login error:", err);
-    res.status(500).json({ success: false, error: "Login failed: " + err.message });
+    res.status(500).json({ success: false, error: "Login failed" });
   }
 });
 
 // Logout
 app.post("/api/auth/logout", (req, res) => {
-  res.json({ success: true, message: "Logged out. Token must be removed client-side." });
+  req.session.destroy();
+  res.json({ success: true });
 });
 
 // Get Current User
-app.get("/api/auth/me", authenticateToken, (req, res) => {
-  if (NODE_ENV !== "production") console.log(`🔍 [AUTH] Valid JWT for: ${req.user.username}`);
-  res.json({ success: true, user: req.user });
+app.get("/api/auth/me", (req, res) => {
+  if (req.session.user) {
+    res.json({ success: true, user: req.session.user });
+  } else {
+    res.json({ success: false, user: null });
+  }
 });
 
 // Test email
@@ -699,18 +669,8 @@ app.get("/api/sellers", async (req, res) => {
   try {
     const db = await getDb();
     const { all } = req.query;
-
-    // Attempt to extract user for admin check (don't block if missing, since public needs access)
-    let user = null;
-    const authHeader = req.headers['authorization'];
-    let token = authHeader && authHeader.split(' ')[1];
-    if (!token) token = req.headers['x-auth-token'];
-    if (token) {
-      try { user = jwt.verify(token, JWT_SECRET); } catch (e) { }
-    }
-
     let sellers;
-    if (all === "true" && user && user.role === "admin") {
+    if (all === "true" && req.session.user && req.session.user.role === "admin") {
       sellers = await db.prepare("SELECT id, username, email, role, business_name FROM users WHERE role = 'seller'").all();
     } else {
       // Public view: only sellers with products
@@ -809,7 +769,7 @@ app.post("/api/products", isAuthenticated, upload.single("image"), async (req, r
   }
 
   const image = req.file ? `images/${req.file.filename}` : "images/placeholder.jpg";
-  const seller_id = req.user.id;
+  const seller_id = req.session.user.id;
 
   try {
     const db = await getDb();
@@ -832,14 +792,14 @@ app.post("/api/products", isAuthenticated, upload.single("image"), async (req, r
 app.put("/api/products/:id", isAuthenticated, upload.single("image"), async (req, res) => {
   const { name, description, price, qty } = req.body;
   const productId = req.params.id;
-  const seller_id = req.user.id;
+  const seller_id = req.session.user.id;
 
   try {
     const db = await getDb();
     // Check if user owns the product OR is admin
     const product = await db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
     if (!product) return res.status(404).json({ success: false, error: "Product not found" });
-    if (req.user.role !== "admin" && product.seller_id !== seller_id) {
+    if (req.session.user.role !== "admin" && product.seller_id !== seller_id) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
@@ -864,13 +824,13 @@ app.put("/api/products/:id", isAuthenticated, upload.single("image"), async (req
 // Delete Product (Authenticated)
 app.delete("/api/products/:id", isAuthenticated, async (req, res) => {
   const productId = req.params.id;
-  const seller_id = req.user.id;
+  const seller_id = req.session.user.id;
 
   try {
     const db = await getDb();
     const product = await db.prepare("SELECT * FROM products WHERE id = ?").get(productId);
     if (!product) return res.status(404).json({ success: false, error: "Product not found" });
-    if (req.user.role !== "admin" && product.seller_id !== seller_id) {
+    if (req.session.user.role !== "admin" && product.seller_id !== seller_id) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
@@ -915,7 +875,7 @@ app.get("/api/admin/dashboard", isAdmin, async (req, res) => {
 
 // Seller Stats
 app.get("/api/seller/dashboard", isAuthenticated, async (req, res) => {
-  const seller_id = req.user.id;
+  const seller_id = req.session.user.id;
   try {
     const db = await getDb();
     const totalSales = await db.prepare(`
