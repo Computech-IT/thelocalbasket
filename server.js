@@ -243,12 +243,22 @@ app.disable("x-powered-by");
 // ========================
 // Session Setup
 // ========================
+const sessionDir = path.join(__dirname, "sessions");
+if (!fs.existsSync(sessionDir)) {
+  fs.mkdirSync(sessionDir, { recursive: true });
+}
+
 app.use(session({
-  store: new FileStore({ path: path.join(__dirname, "sessions") }),
+  store: new FileStore({
+    path: sessionDir,
+    retries: 0 // Faster failure if folder is unwritable
+  }),
   secret: process.env.SESSION_SECRET || "local-basket-dev-secret",
   resave: false,
   saveUninitialized: false,
+  rolling: true, // Refreshes session on every request
   proxy: true,
+  name: "localbasket.sid", // Custom name to avoid generic fingerprints
   cookie: {
     secure: NODE_ENV === "production",
     httpOnly: true,
@@ -547,8 +557,16 @@ app.post("/api/auth/logout", (req, res) => {
 // Get Current User
 app.get("/api/auth/me", (req, res) => {
   if (req.session.user) {
+    if (NODE_ENV !== "production") console.log(`🔍 [SESSION] Valid session for: ${req.session.user.username}`);
     res.json({ success: true, user: req.session.user });
   } else {
+    if (NODE_ENV === "production") {
+      console.warn("⚠️ [SESSION] No session found for request. Headers:", {
+        cookie: req.headers.cookie ? "Present (masked)" : "Missing",
+        ip: req.ip,
+        ua: req.headers["user-agent"]
+      });
+    }
     res.json({ success: false, user: null });
   }
 });
