@@ -372,18 +372,43 @@
             document.getElementById('sellerForm').addEventListener('submit', handleSellerSubmit);
         });
 
+        async function apiFetch(url, options = {}) {
+            const token = localStorage.getItem('token');
+            if (!options.headers) options.headers = {};
+            // Don't override Content-Type if it's FormData (browser sets boundary automatically)
+            if (!(options.body instanceof FormData) && !options.headers['Content-Type']) {
+                options.headers['Content-Type'] = 'application/json';
+            }
+            if (token) options.headers['Authorization'] = `Bearer ${token}`;
+            return fetch(url, options);
+        }
+
         async function checkAuth() {
-            const res = await fetch('/api/auth/me');
-            const data = await res.json();
-            if (!data.success || data.user.role !== 'admin') {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            try {
+                const res = await apiFetch('/api/auth/me');
+                const data = await res.json();
+                if (!data.success || data.user.role !== 'admin') {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                currentUser = data.user;
+                document.getElementById('userInfo').textContent = `Logged in as: ${data.user.username}`;
+            } catch (err) {
+                console.error("Auth check failed", err);
+                localStorage.removeItem('token');
                 window.location.href = '/login.html';
             }
-            currentUser = data.user;
-            document.getElementById('userInfo').textContent = `Logged in as: ${data.user.username}`;
         }
 
         async function logout() {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            localStorage.removeItem('token');
+            await apiFetch('/api/auth/logout', { method: 'POST' });
             window.location.href = '/login.html';
         }
 
@@ -406,7 +431,7 @@
         }
 
         async function loadDashboard() {
-            const res = await fetch('/api/admin/dashboard');
+            const res = await apiFetch('/api/admin/dashboard');
             const data = await res.json();
             if (data.success) {
                 document.getElementById('statRevenue').textContent = `₹${Number(data.stats.revenue).toFixed(2)}`;
@@ -430,7 +455,7 @@
         }
 
         async function loadProducts() {
-            const res = await fetch('/api/products');
+            const res = await apiFetch('/api/products');
             const data = await res.json();
             if (data.success) {
                 const body = document.getElementById('productTableBody');
@@ -454,7 +479,7 @@
         }
 
         async function loadSellers() {
-            const res = await fetch('/api/sellers?all=true');
+            const res = await apiFetch('/api/sellers?all=true');
             const data = await res.json();
             if (data.success) {
                 const body = document.getElementById('sellerTableBody');
@@ -479,7 +504,7 @@
 
         async function loadFullSales() {
             // We Use the same dashboard API but can expand later
-            const res = await fetch('/api/admin/dashboard');
+            const res = await apiFetch('/api/admin/dashboard');
             const data = await res.json();
             if (data.success) {
                 const body = document.getElementById('fullSalesBody');
@@ -537,7 +562,7 @@
             const method = id ? 'PUT' : 'POST';
 
             try {
-                const res = await fetch(url, { method, body: formData });
+                const res = await apiFetch(url, { method, body: formData });
                 const data = await res.json();
                 if (data.success) {
                     productModal.hide();
@@ -556,7 +581,7 @@
 
         async function deleteProduct(id) {
             if (confirm('Are you sure you want to delete this product?')) {
-                const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                const res = await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
                 const data = await res.json();
                 if (data.success) {
                     loadProducts();
@@ -604,9 +629,8 @@
             const method = id ? 'PUT' : 'POST';
 
             try {
-                const res = await fetch(url, {
+                const res = await apiFetch(url, {
                     method,
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
@@ -629,7 +653,7 @@
         async function deleteSeller(id) {
             if (confirm('Are you sure you want to delete this seller? This will also delete ALL their products.')) {
                 try {
-                    const res = await fetch(`/api/admin/sellers/${id}`, { method: 'DELETE' });
+                    const res = await apiFetch(`/api/admin/sellers/${id}`, { method: 'DELETE' });
                     const data = await res.json();
                     if (data.success) {
                         loadSellers();

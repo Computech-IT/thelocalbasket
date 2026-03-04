@@ -267,18 +267,42 @@
             document.getElementById('productForm').addEventListener('submit', handeProductSubmit);
         });
 
+        async function apiFetch(url, options = {}) {
+            const token = localStorage.getItem('token');
+            if (!options.headers) options.headers = {};
+            if (!(options.body instanceof FormData) && !options.headers['Content-Type']) {
+                options.headers['Content-Type'] = 'application/json';
+            }
+            if (token) options.headers['Authorization'] = `Bearer ${token}`;
+            return fetch(url, options);
+        }
+
         async function checkAuth() {
-            const res = await fetch('/api/auth/me');
-            const data = await res.json();
-            if (!data.success || data.user.role !== 'seller') {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            try {
+                const res = await apiFetch('/api/auth/me');
+                const data = await res.json();
+                if (!data.success || data.user.role !== 'seller') {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                currentUser = data.user;
+                document.getElementById('userInfo').textContent = `Seller: ${data.user.username}`;
+            } catch (err) {
+                console.error("Auth check failed", err);
+                localStorage.removeItem('token');
                 window.location.href = '/login.html';
             }
-            currentUser = data.user;
-            document.getElementById('userInfo').textContent = `Seller: ${data.user.username}`;
         }
 
         async function logout() {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            localStorage.removeItem('token');
+            await apiFetch('/api/auth/logout', { method: 'POST' });
             window.location.href = '/login.html';
         }
 
@@ -297,7 +321,7 @@
         }
 
         async function loadDashboard() {
-            const res = await fetch('/api/seller/dashboard');
+            const res = await apiFetch('/api/seller/dashboard');
             const data = await res.json();
             if (data.success) {
                 document.getElementById('statRevenue').textContent = `₹${Number(data.stats.revenue).toFixed(2)}`;
@@ -320,7 +344,7 @@
         }
 
         async function loadProducts() {
-            const res = await fetch('/api/products');
+            const res = await apiFetch('/api/products');
             const data = await res.json();
             if (data.success) {
                 const body = document.getElementById('productTableBody');
@@ -382,7 +406,7 @@
             const method = id ? 'PUT' : 'POST';
 
             try {
-                const res = await fetch(url, { method, body: formData });
+                const res = await apiFetch(url, { method, body: formData });
                 const data = await res.json();
                 if (data.success) {
                     productModal.hide();
@@ -401,7 +425,7 @@
 
         async function deleteProduct(id) {
             if (confirm('Are you sure you want to delete this product?')) {
-                const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+                const res = await apiFetch(`/api/products/${id}`, { method: 'DELETE' });
                 const data = await res.json();
                 if (data.success) {
                     loadProducts();

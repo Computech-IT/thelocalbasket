@@ -126,6 +126,7 @@
         const data = await res.json();
 
         if (data.success) {
+          localStorage.setItem('token', data.token); // Save JWT
           // Success! Redirect based on role
           if (data.user.role === 'admin') {
             window.location.href = '/admin.html';
@@ -146,11 +147,22 @@
 
     // Check if already logged in
     window.onload = async () => {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-      if (data.success) {
-        if (data.user.role === 'admin') window.location.href = '/admin.html';
-        else window.location.href = '/seller.html';
+      const token = localStorage.getItem('token');
+      if (!token) return; // No token, stay on login page
+
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (data.user.role === 'admin') window.location.href = '/admin.html';
+          else window.location.href = '/seller.html';
+        } else {
+          localStorage.removeItem('token'); // Clear invalid token
+        }
+      } catch (err) {
+        console.error("Auth check failed", err);
       }
     };
   </script>
