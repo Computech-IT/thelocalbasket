@@ -179,7 +179,7 @@ bootstrapDatabase().catch(err => {
 // Middleware & Security
 // ========================
 if (NODE_ENV === "production") {
-  app.set("trust proxy", 1); // Needed for Hostinger/Reverse Proxies
+  app.set("trust proxy", true); // Trust all proxies
 }
 
 app.use(cors({
