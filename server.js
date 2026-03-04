@@ -243,17 +243,24 @@ app.disable("x-powered-by");
 // ========================
 // Session Setup
 // ========================
+const sessionSecret = process.env.SESSION_SECRET || "local-basket-dev-secret-key-123";
+
 app.use(session({
-  store: new FileStore({ path: path.join(__dirname, "sessions") }),
-  secret: process.env.SESSION_SECRET || "local-basket-dev-secret",
+  store: new FileStore({
+    path: path.join(__dirname, "sessions"),
+    retries: 0,
+    ttl: 24 * 60 * 60
+  }),
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   proxy: true,
+  name: "tlb.sid",
   cookie: {
     secure: NODE_ENV === "production",
     httpOnly: true,
-    sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    sameSite: NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
@@ -531,7 +538,14 @@ app.post("/api/auth/login", async (req, res) => {
       role: user.role,
       business_name: user.business_name
     };
-    res.json({ success: true, user: req.session.user });
+
+    req.session.save((err) => {
+      if (err) {
+        console.error("❌ Session save error:", err);
+        return res.status(500).json({ success: false, error: "Login failed to persist" });
+      }
+      res.json({ success: true, user: req.session.user });
+    });
   } catch (err) {
     console.error("❌ Login error:", err);
     res.status(500).json({ success: false, error: "Login failed" });
@@ -910,7 +924,9 @@ app.get("/api/seller/dashboard", isAuthenticated, async (req, res) => {
 app.get("/api/coupons", async (req, res) => {
   try {
     const db = await getDb();
-    const coupons = await db.prepare("SELECT * FROM coupons WHERE expires > datetime('now')").all();
+    const isMySQL = !!process.env.DB_HOST;
+    const dateFunc = isMySQL ? "NOW()" : "datetime('now')";
+    const coupons = await db.prepare(`SELECT * FROM coupons WHERE expires > ${dateFunc}`).all();
     res.json(coupons);
   } catch (err) {
     res.status(500).json({ error: "Failed to load coupons" });
