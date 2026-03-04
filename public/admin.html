@@ -373,18 +373,19 @@
         });
 
         async function checkAuth() {
-            const res = await fetch('/api/auth/me');
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
             const data = await res.json();
             if (!data.success || data.user.role !== 'admin') {
-                window.location.href = '/login.html';
+                window.location.replace('/login');
+                return;
             }
             currentUser = data.user;
             document.getElementById('userInfo').textContent = `Logged in as: ${data.user.username}`;
         }
 
         async function logout() {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            window.location.href = '/login.html';
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            window.location.replace('/login');
         }
 
         function showSection(section) {

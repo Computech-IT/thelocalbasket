@@ -5,59 +5,48 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Local Basket | Login</title>
+  <meta name="description" content="Admin and Seller login for The Local Basket platform.">
 
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .login-wrapper {
+      width: 100%;
+      max-width: 420px;
     }
 
     .login-card {
-      max-width: 400px;
-      margin: auto;
-      margin-top: 8vh;
-      padding: 2rem;
-      border-radius: 1.2rem;
-      background: #fff;
-      box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.1);
-      animation: fadeIn 0.6s ease-in-out;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      animation: slideUp 0.5s ease;
     }
 
-    .login-logo img {
-      max-height: 60px;
-    }
-
-    .form-control {
-      border-radius: 0.8rem;
-    }
-
-    .btn-login {
-      background-color: #25D366;
-      color: white;
-      border-radius: 0.8rem;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .btn-login:hover {
-      background-color: #1eb157;
-      transform: translateY(-2px);
-    }
-
-    .extra-links {
-      font-size: 0.9rem;
-    }
-
-    @keyframes fadeIn {
+    @keyframes slideUp {
       from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
       }
 
       to {
@@ -65,94 +54,259 @@
         transform: translateY(0);
       }
     }
+
+    .logo-wrap {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo-wrap img {
+      height: 56px;
+      filter: brightness(1.1);
+    }
+
+    .login-title {
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0.3rem;
+    }
+
+    .login-sub {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.85rem;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .input-group-text {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: rgba(255, 255, 255, 0.6);
+      border-right: none;
+    }
+
+    .form-control {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-left: none;
+      color: #fff;
+      border-radius: 0;
+      padding: 0.7rem 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-control:focus {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(100, 220, 150, 0.6);
+      box-shadow: none;
+      color: #fff;
+    }
+
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .input-group {
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+
+    .btn-login {
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: #fff;
+      border: none;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      padding: 0.75rem;
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .btn-login:hover:not(:disabled) {
+      background: linear-gradient(135deg, #1eb157, #0e6b5e);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .btn-login .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #loginMessage {
+      font-size: 0.875rem;
+      min-height: 24px;
+      text-align: center;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.8rem;
+    }
+
+    #loginMessage.error {
+      background: rgba(220, 53, 69, 0.15);
+      color: #ff6b81;
+      border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+
+    .back-link {
+      text-align: center;
+      margin-top: 1.2rem;
+    }
+
+    .back-link a {
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 0.8rem;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .back-link a:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
   </style>
 </head>
 
 <body>
+  <div class="login-wrapper">
+    <div class="login-card">
 
-  <!-- Login Card -->
-  <div class="login-card text-center">
+      <div class="logo-wrap">
+        <img src="images/logo.PNG" alt="The Local Basket" onerror="this.style.display='none'">
+      </div>
 
-    <!-- Logo -->
-    <div class="login-logo mb-3">
-      <img src="images/logo.png" alt="The Local Basket" onclick="window.history.back">
+      <h1 class="login-title">Welcome Back 👋</h1>
+      <p class="login-sub">Sign in to your dashboard</p>
+
+      <form id="loginForm" novalidate>
+        <div class="mb-3">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+            <input type="text" id="username" class="form-control" placeholder="Username" autocomplete="username"
+              required>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+            <input type="password" id="password" class="form-control" placeholder="Password"
+              autocomplete="current-password" required>
+          </div>
+        </div>
+
+        <div id="loginMessage" class="mb-3"></div>
+
+        <button type="submit" class="btn-login" id="loginBtn">
+          <span id="btnText">Sign In</span>
+          <div class="spinner" id="btnSpinner"></div>
+        </button>
+      </form>
+
+      <div class="back-link">
+        <a href="/index.html">← Back to Store</a>
+      </div>
+
     </div>
-
-    <h5 class="mb-4 fw-bold text-secondary">Welcome Back 👋</h5>
-
-    <!-- Login Form -->
-    <form id="loginForm">
-      <!-- Username -->
-      <div class="mb-3 input-group">
-        <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
-        <input type="text" id="username" class="form-control" placeholder="Username" required>
-      </div>
-
-      <!-- Password -->
-      <div class="mb-3 input-group">
-        <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
-        <input type="password" id="password" class="form-control" placeholder="Password" required>
-      </div>
-
-      <!-- Login Button -->
-      <button type="submit" class="btn btn-login w-100 py-2" id="loginBtn">Login</button>
-      <div id="loginMessage" class="mt-3 small text-danger"></div>
-    </form>
-
-
   </div>
 
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
   <script>
+    // Check if already logged in
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success && data.user) {
+          window.location.replace(data.user.role === 'admin' ? '/admin' : '/seller');
+        }
+      } catch (_) { }
+    })();
+
+    // Login form handler
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      const loginBtn = document.getElementById('loginBtn');
-      const loginMessage = document.getElementById('loginMessage');
 
-      loginBtn.disabled = true;
-      loginBtn.textContent = 'Logging in...';
-      loginMessage.textContent = '';
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+      const btnText = document.getElementById('btnText');
+      const spinner = document.getElementById('btnSpinner');
+      const msgEl = document.getElementById('loginMessage');
+
+      if (!username || !password) {
+        showMsg('Please enter your username and password.', true);
+        return;
+      }
+
+      // Loading state
+      btn.disabled = true;
+      btnText.style.display = 'none';
+      spinner.style.display = 'block';
+      msgEl.textContent = '';
+      msgEl.className = '';
 
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          credentials: 'include',
+          body: JSON.stringify({ username, password }),
         });
+
         const data = await res.json();
 
         if (data.success) {
-          // Success! Redirect based on role
-          if (data.user.role === 'admin') {
-            window.location.href = '/admin.html';
-          } else {
-            window.location.href = '/seller.html';
-          }
+          showMsg('✅ Login successful! Redirecting...', false);
+          // Use server-provided redirect for reliability
+          window.location.replace(data.redirect || (data.user.role === 'admin' ? '/admin' : '/seller'));
         } else {
-          loginMessage.textContent = data.error || 'Login failed. Please try again.';
-          loginBtn.disabled = false;
-          loginBtn.textContent = 'Login';
+          showMsg(data.error || 'Login failed. Please try again.', true);
+          resetBtn();
         }
       } catch (err) {
-        loginMessage.textContent = 'An error occurred. Please check your connection.';
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Login';
+        showMsg('Network error. Please check your connection.', true);
+        resetBtn();
+      }
+
+      function showMsg(text, isError) {
+        msgEl.textContent = text;
+        msgEl.className = isError ? 'mb-3 error' : 'mb-3';
+        msgEl.style.color = isError ? '' : '#6ee7b7';
+      }
+
+      function resetBtn() {
+        btn.disabled = false;
+        btnText.style.display = 'block';
+        spinner.style.display = 'none';
       }
     });
 
-    // Check if already logged in
-    window.onload = async () => {
-      const res = await fetch('/api/auth/me');
-      const data = await res.json();
-      if (data.success) {
-        if (data.user.role === 'admin') window.location.href = '/admin.html';
-        else window.location.href = '/seller.html';
-      }
-    };
+    // Enter key support
+    document.getElementById('password').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+    });
   </script>
 </body>
 
