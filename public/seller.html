@@ -273,7 +273,10 @@
             if (!(options.body instanceof FormData) && !options.headers['Content-Type']) {
                 options.headers['Content-Type'] = 'application/json';
             }
-            if (token) options.headers['Authorization'] = `Bearer ${token}`;
+            if (token) {
+                options.headers['Authorization'] = `Bearer ${token}`;
+                options.headers['X-Auth-Token'] = token;
+            }
             return fetch(url, options);
         }
 
