@@ -251,6 +251,32 @@ app.use("/api/auth/login", authLimiter);
 app.use("/test-email", authLimiter);
 app.use("/create-razorpay-order", orderLimiter);
 
+// ========================
+// Health Checks & Diagnostics
+// ========================
+app.get("/api/health", async (req, res) => {
+  const dbStatus = { connected: false, type: "unknown", error: null };
+  try {
+    const db = await getDb();
+    const isMySQL = process.env.DB_HOST ? true : false;
+    dbStatus.type = isMySQL ? "MySQL (Production)" : "SQLite (Local)";
+
+    // Simple query test
+    await db.prepare("SELECT 1").get();
+    dbStatus.connected = true;
+  } catch (err) {
+    dbStatus.error = err.message;
+    console.error("❌ Health check DB failed:", err);
+  }
+
+  res.json({
+    status: "ok",
+    node_version: process.version,
+    env: NODE_ENV,
+    db: dbStatus
+  });
+});
+
 // Explicit routes for HTML files (improves reliability)
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
 app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
@@ -542,7 +568,7 @@ app.post("/api/auth/login", async (req, res) => {
     res.json({ success: true, token, user: payload });
   } catch (err) {
     console.error("❌ Login error:", err);
-    res.status(500).json({ success: false, error: "Login failed" });
+    res.status(500).json({ success: false, error: "Login failed: " + err.message });
   }
 });
 
