@@ -260,14 +260,19 @@ app.use("/api/", generalLimiter);
 app.use("/api/auth/login", authLimiter);
 app.use("/create-razorpay-order", orderLimiter);
 
+// Explicit Root Route (Most robust for Hostinger)
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 // Specialized HTML Routes
 app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
 app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public", "seller.html")));
 
-// Static Files
+// Static Files & Fallbacks
 app.use("/images", express.static(path.join(__dirname, "public", "images")));
-app.use(express.static(path.join(__dirname, "public"), { index: "index.html" }));
+app.use(express.static(path.join(__dirname, "public")));
 
 // ========================
 // Multer Setup (for Image Uploads)
@@ -676,10 +681,15 @@ app.get("/api/products", async (req, res) => {
     }
 
     const products = await db.prepare(query).all(...params);
+    console.log(`🔍 [FETCH PRODUCTS] Found ${products.length} products.`);
     res.json({ success: true, products });
   } catch (err) {
     console.error("❌ [FETCH PRODUCTS] CRITICAL ERROR:", err);
-    res.status(500).json({ success: false, error: "Database error: " + err.message });
+    res.status(500).json({
+      success: false,
+      error: "Database error: " + err.message,
+      hint: "Check if the 'products' table is populated in Hostinger MySQL."
+    });
   }
 });
 
