@@ -13,7 +13,7 @@ const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const session = require("express-session");
-const FileStore = require("session-file-store")(session);
+const MySQLStore = require("express-mysql-session")(session);
 const multer = require("multer");
 const rateLimit = require("express-rate-limit");
 const mysql = require("mysql2/promise");
@@ -195,28 +195,36 @@ app.use(express.json({
 // ========================
 // Session & Auth Setup
 // ========================
-const sessionDir = path.join(__dirname, "sessions");
-if (!fs.existsSync(sessionDir)) {
-  fs.mkdirSync(sessionDir, { recursive: true });
+let sessionStore;
+
+if (NODE_ENV === "production" && process.env.DB_HOST) {
+  const sessionDbOptions = {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    createDatabaseTable: true, // Automatically creates the 'sessions' table
+  };
+  sessionStore = new MySQLStore(sessionDbOptions);
+  console.log("✅ Using MySQL for Session Storage");
+} else {
+  console.warn("⚠️ Using MemoryStore for sessions. Not recommended for production.");
 }
 
 app.use(session({
-  store: new FileStore({
-    path: sessionDir,
-    retries: 2, // Re-try on file locks
-    fileExtension: ".json"
-  }),
+  key: "localbasket.sid",
   secret: process.env.SESSION_SECRET || "local-basket-dev-secret",
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
   rolling: true,
   proxy: true,
-  name: "localbasket.sid",
   cookie: {
-    secure: false, // Temporarily false to solve immediate redirect issue
+    secure: NODE_ENV === "production", // Re-enabling secure for production
     httpOnly: true,
     sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
 
