@@ -192,10 +192,47 @@ app.use(express.json({
     if (req.originalUrl === "/razorpay-webhook") req.rawBody = buf;
   }
 }));
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/images", express.static(path.join(__dirname, "public/images")));
+// ========================
+// Session & Auth Setup
+// ========================
+const sessionDir = path.join(__dirname, "sessions");
+if (!fs.existsSync(sessionDir)) {
+  fs.mkdirSync(sessionDir, { recursive: true });
+}
 
-// Rate Limiters
+app.use(session({
+  store: new FileStore({
+    path: sessionDir,
+    retries: 2, // Re-try on file locks
+    fileExtension: ".json"
+  }),
+  secret: process.env.SESSION_SECRET || "local-basket-dev-secret",
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  proxy: true,
+  name: "localbasket.sid",
+  cookie: {
+    secure: false, // Temporarily false to solve immediate redirect issue
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
+
+function isAuthenticated(req, res, next) {
+  if (req.session && req.session.user) return next();
+  res.status(401).json({ success: false, error: "Unauthorized" });
+}
+
+function isAdmin(req, res, next) {
+  if (req.session && req.session.user && req.session.user.role === "admin") return next();
+  res.status(403).json({ success: false, error: "Access denied" });
+}
+
+// ========================
+// Static Files & Rate Limiters
+// ========================
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // Limit each IP to 10 login requests per window
@@ -225,6 +262,9 @@ app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.
 app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
 app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public/seller.html")));
 
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/images", express.static(path.join(__dirname, "public/images")));
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -239,34 +279,6 @@ app.use(helmet({
   },
 }));
 app.disable("x-powered-by");
-
-// ========================
-// Session Setup
-// ========================
-const sessionDir = path.join(__dirname, "sessions");
-if (!fs.existsSync(sessionDir)) {
-  fs.mkdirSync(sessionDir, { recursive: true });
-}
-
-app.use(session({
-  store: new FileStore({
-    path: sessionDir,
-    retries: 2, // Re-try on file locks
-    fileExtension: ".json"
-  }),
-  secret: process.env.SESSION_SECRET || "local-basket-dev-secret",
-  resave: false,
-  saveUninitialized: false,
-  rolling: true,
-  proxy: true,
-  name: "localbasket.sid",
-  cookie: {
-    secure: false, // Temporarily false to solve immediate redirect issue
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000
-  }
-}));
 
 // ========================
 // Multer Setup (for Image Uploads)
@@ -359,19 +371,6 @@ function wrapEmail(title, body) {
       © ${new Date().getFullYear()} The Local Basket
     </div>
   </div>`;
-}
-
-// ========================
-// Auth Middlewares
-// ========================
-function isAuthenticated(req, res, next) {
-  if (req.session.user) return next();
-  res.status(401).json({ success: false, error: "Unauthorized" });
-}
-
-function isAdmin(req, res, next) {
-  if (req.session.user && req.session.user.role === "admin") return next();
-  res.status(403).json({ success: false, error: "Access denied" });
 }
 
 // ========================
