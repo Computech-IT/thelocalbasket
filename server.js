@@ -187,13 +187,35 @@ app.use(cors({
   credentials: true
 }));
 
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://apis.google.com", "https://cdn.jsdelivr.net"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+      "font-src": ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
+      "frame-src": ["'self'", "https://api.razorpay.com", "https://tds.razorpay.com", "https://checkout.razorpay.com"],
+      "img-src": ["'self'", "data:", "https://*.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in"],
+      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in", "https://cdn.jsdelivr.net"],
+    },
+  },
+}));
+app.disable("x-powered-by");
+
 app.use(express.json({
   limit: "100kb", verify: (req, res, buf) => {
     if (req.originalUrl === "/razorpay-webhook") req.rawBody = buf;
   }
 }));
+
+// Explicit routes for HTML files (move ABOVE static middleware)
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
+app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
+app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public", "seller.html")));
+
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/images", express.static(path.join(__dirname, "public/images")));
+app.use("/images", express.static(path.join(__dirname, "public", "images")));
 
 // Rate Limiters
 const authLimiter = rateLimit({
@@ -219,26 +241,7 @@ app.use("/api/auth/login", authLimiter);
 app.use("/test-email", authLimiter);
 app.use("/create-razorpay-order", orderLimiter);
 
-// Explicit routes for HTML files (improves reliability)
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
-app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
-app.get("/admin", isAdmin, (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
-app.get("/seller", isAuthenticated, (req, res) => res.sendFile(path.join(__dirname, "public/seller.html")));
-
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://apis.google.com", "https://cdn.jsdelivr.net"],
-      "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
-      "font-src": ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
-      "frame-src": ["'self'", "https://api.razorpay.com", "https://tds.razorpay.com", "https://checkout.razorpay.com"],
-      "img-src": ["'self'", "data:", "https://*.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in"],
-      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in", "https://cdn.jsdelivr.net"],
-    },
-  },
-}));
-app.disable("x-powered-by");
+// Rate Limiters Moved Down
 
 // ========================
 // Session Setup
