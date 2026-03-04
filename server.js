@@ -251,16 +251,17 @@ if (!fs.existsSync(sessionDir)) {
 app.use(session({
   store: new FileStore({
     path: sessionDir,
-    retries: 0 // Faster failure if folder is unwritable
+    retries: 2, // Re-try on file locks
+    fileExtension: ".json"
   }),
   secret: process.env.SESSION_SECRET || "local-basket-dev-secret",
   resave: false,
   saveUninitialized: false,
-  rolling: true, // Refreshes session on every request
+  rolling: true,
   proxy: true,
   name: "localbasket.sid",
   cookie: {
-    secure: "auto", // Automatically detects if HTTPS is used via trust proxy
+    secure: false, // Temporarily false to solve immediate redirect issue
     httpOnly: true,
     sameSite: "lax",
     maxAge: 24 * 60 * 60 * 1000
