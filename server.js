@@ -184,7 +184,9 @@ if (NODE_ENV === "production") {
 
 app.use(cors({
   origin: NODE_ENV === "production" ? ["https://thelocalbasket.in", "https://www.thelocalbasket.in"] : true,
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
 }));
 
 app.use(express.json({
@@ -221,9 +223,9 @@ app.use(session({
   rolling: true,
   proxy: true,
   cookie: {
-    secure: NODE_ENV === "production", // Re-enabling secure for production
+    secure: NODE_ENV === "production", // Must be true when sameSite is 'none'
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: NODE_ENV === "production" ? "none" : "lax", // Crucial for cross-subdomain/proxy setups
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
