@@ -528,7 +528,7 @@ app.post("/api/customer/register", async (req, res) => {
     if (existing) return res.status(400).json({ error: "Email already registered" });
     const hashed = bcrypt.hashSync(password, 10);
     const result = await db.prepare("INSERT INTO customers (email, password, full_name, phone) VALUES (?, ?, ?, ?)").run(cleanEmail, hashed, sanitize(full_name), sanitize(phone));
-    req.session.customer_id = !!process.env.DB_HOST ? result[0].insertId : result.lastInsertRowid;
+    req.session.customer_id = result.lastInsertRowid;
     req.session.customer_email = cleanEmail;
     res.json({ success: true, message: "Registered successfully" });
   } catch (err) {
