@@ -248,7 +248,10 @@
       <button class="nav-link" data-section="sellers"><i class="bi bi-people-fill"></i> Sellers</button>
       <button class="nav-link" data-section="sales"><i class="bi bi-receipt"></i> Sales & Orders</button>
     </nav>
-    <div class="sidebar-footer">
+    <div class="sidebar-footer" style="display:flex; flex-direction:column; gap:0.5rem;">
+      <button class="nav-link" data-bs-toggle="modal" data-bs-target="#updatePwdModal" style="color:#fbbf24 !important;">
+        <i class="bi bi-key-fill"></i> Change Password
+      </button>
       <button class="nav-link text-danger" id="logoutBtn" style="color:#ef4444 !important;">
         <i class="bi bi-box-arrow-left"></i> Logout
       </button>
@@ -471,6 +474,32 @@
     </div>
   </div>
 
+  <!-- Update Password Modal -->
+  <div class="modal fade" id="updatePwdModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title font-playfair fw-bold">Change Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body pt-3">
+          <form id="updatePwdForm">
+            <div class="mb-3">
+              <label class="form-label text-muted small fw-semibold">Current Password</label>
+              <input type="password" id="updOldPassword" class="form-control" required>
+            </div>
+            <div class="mb-4">
+              <label class="form-label text-muted small fw-semibold">New Password</label>
+              <input type="password" id="updNewPassword" class="form-control" required>
+            </div>
+            <div id="updMessage" class="small mb-3 text-center" style="min-height:20px;"></div>
+            <button type="submit" class="btn btn-accent w-100 rounded-pill py-2 fw-semibold">Update Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ====== HIDDEN PRINT AREA ====== -->
   <div id="printArea"></div>
 
@@ -506,6 +535,42 @@
 
       // Logout
       document.getElementById('logoutBtn').addEventListener('click', logout);
+
+      // Update Password Form
+      document.getElementById('updatePwdForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        const msg = document.getElementById('updMessage');
+        btn.disabled = true;
+        msg.textContent = 'Updating...';
+        msg.className = 'small mb-3 text-center text-muted';
+        try {
+          const res = await fetch('/api/auth/update-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: currentUser.username,
+              oldPassword: document.getElementById('updOldPassword').value,
+              newPassword: document.getElementById('updNewPassword').value
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            msg.textContent = '✅ Password updated successfully!';
+            msg.className = 'small mb-3 text-center text-success';
+            e.target.reset();
+            setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('updatePwdModal')).hide(), 2000);
+          } else {
+            msg.textContent = '❌ ' + (data.error || 'Failed to update');
+            msg.className = 'small mb-3 text-center text-danger';
+          }
+        } catch (err) {
+          msg.textContent = '❌ Network error.';
+          msg.className = 'small mb-3 text-center text-danger';
+        } finally {
+          btn.disabled = false;
+        }
+      });
 
       // Product form
       document.getElementById('productForm').addEventListener('submit', handleProductSubmit);
