@@ -8,3 +8,5 @@ sessions/
 !public/images/logo.PNG
 !public/images/favicon.png
 !public/images/images.png
+
+products.db-*

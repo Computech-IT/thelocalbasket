@@ -1,190 +1,573 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thank You | The Local Basket</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-<style>
-  body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow: hidden;
-    position: relative;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmed | The Local Basket</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #198754;
+      --green-light: #d1e7dd;
+      --ink: #1a1a2e;
+      --muted: #6c757d;
+      --border: #e9ecef;
+      --radius: 16px;
+    }
 
-  .confetti {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    overflow: hidden;
-    top: 0;
-    left: 0;
-    z-index: 0;
-  }
+    * { box-sizing: border-box; }
 
-  .confetti-piece {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    opacity: 0.9;
-    animation: fall linear infinite;
-  }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: linear-gradient(135deg, #f0f7f4 0%, #e8f5e9 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-  @keyframes fall {
-    0% { transform: translateY(-10%) rotate(0deg); opacity: 0; }
-    10% { opacity: 1; }
-    100% { transform: translateY(110vh) rotate(360deg); opacity: 0.9; }
-  }
+    /* ---- Loading ---- */
+    #loadingState {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80vh;
+      gap: 16px;
+    }
+    .spinner-ring {
+      width: 64px; height: 64px;
+      border: 5px solid #e0f2e9;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-  .thankyou-box {
-    text-align: center;
-    background: #ffffff;
-    padding: 3rem 2rem;
-    border-radius: 25px;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.1);
-    max-width: 500px;
-    width: 100%;
-    position: relative;
-    z-index: 1;
-    animation: fadeIn 0.8s ease-out;
-  }
+    /* ---- Success Banner ---- */
+    .success-banner {
+      text-align: center;
+      padding: 40px 20px 24px;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: var(--green);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 24px rgba(25, 135, 84, 0.35);
+    }
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .success-icon i { font-size: 2.5rem; color: white; }
+    .success-banner h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--ink); margin-bottom: 8px; }
+    .success-banner p { color: var(--muted); font-size: 1rem; }
 
-  .thankyou-box .store-name {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #198754;
-    letter-spacing: 1px;
-    margin-bottom: 0.5rem;
-  }
+    /* ---- Invoice Card ---- */
+    #invoiceCard {
+      max-width: 820px;
+      margin: 0 auto;
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 40px rgba(0,0,0,0.08);
+      overflow: hidden;
+      animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
 
-  .thankyou-box i {
-    font-size: 4rem;
-    color: #198754;
-    animation: bounce 1s ease infinite alternate;
-  }
+    /* ---- Invoice Header ---- */
+    .invoice-header {
+      background: linear-gradient(135deg, #198754, #0f6340);
+      color: white;
+      padding: 32px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand-name { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; }
+    .brand-tagline { font-size: 0.8rem; opacity: 0.8; margin-top: 4px; }
+    .invoice-meta { text-align: right; }
+    .invoice-meta .invoice-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
+    .invoice-meta .invoice-value { font-size: 1.1rem; font-weight: 700; }
+    .invoice-meta .invoice-date { font-size: 0.85rem; opacity: 0.8; margin-top: 4px; }
 
-  .thankyou-box h2 {
-    margin-top: 1rem;
-    font-weight: 700;
-    color: #198754;
-    font-size: 2rem;
-  }
+    /* ---- Invoice Body ---- */
+    .invoice-body { padding: 32px 40px; }
 
-  .thankyou-box p {
-    margin-top: 0.5rem;
-    color: #555;
-    line-height: 1.6;
-    font-size: 1rem;
-  }
+    .section-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .info-block { background: #f8f9fa; border-radius: 10px; padding: 16px 20px; }
+    .info-block p { margin: 0 0 4px; font-size: 0.9rem; }
+    .info-block .name { font-weight: 700; font-size: 1rem; color: var(--ink); }
 
-  .thankyou-box h1 {
-    font-size: 1rem;
-    color: #c0392b;
-    margin-top: 1rem;
-    font-weight: 500;
-  }
+    /* ---- Items Table ---- */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 24px;
+    }
+    .items-table thead th {
+      background: var(--ink);
+      color: white;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+    .items-table thead th:first-child { border-radius: 8px 0 0 0; }
+    .items-table thead th:last-child  { border-radius: 0 8px 0 0; }
+    .items-table tbody td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .items-table tbody tr:last-child td { border-bottom: none; }
+    .items-table tbody tr:hover td { background: #f8f9fa; }
 
-  .countdown {
-    margin-top: 0.8rem;
-    font-size: 0.95rem;
-    color: #555;
-  }
+    /* ---- Totals ---- */
+    .totals-section { margin-top: 16px; }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .total-row:last-child { border-bottom: none; }
+    .total-row.grand {
+      padding: 16px 0 4px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--green);
+    }
+    .discount-row { color: #d9534f; }
+    .coupon-badge {
+      display: inline-block;
+      background: #fff8e1;
+      color: #856404;
+      border: 1px solid #ffe082;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 8px;
+    }
 
-  .btn-home {
-    margin-top: 1.5rem;
-    padding: 0.6rem 1.8rem;
-    font-size: 1rem;
-    border-radius: 50px;
-    background: linear-gradient(135deg, #198754, #28a745);
-    color: white;
-    border: none;
-    transition: all 0.3s ease;
-  }
+    /* ---- Payment ID ---- */
+    .payment-id-box {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .payment-id-box i { color: var(--green); font-size: 1.2rem; }
+    .payment-id-box .pid { font-family: 'Courier New', monospace; font-size: 0.85rem; word-break: break-all; }
 
-  .btn-home:hover {
-    background: linear-gradient(135deg, #28a745, #198754);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-  }
+    /* ---- Footer ---- */
+    .invoice-footer {
+      border-top: 1px solid var(--border);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: #f8f9fa;
+    }
+    .invoice-footer .note { font-size: 0.8rem; color: var(--muted); }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+    /* ---- Action Buttons ---- */
+    .action-btns {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 32px auto 0;
+      max-width: 820px;
+      padding: 0 0 40px;
+    }
+    .btn-download {
+      background: linear-gradient(135deg, var(--green), #0f6340);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 16px rgba(25,135,84,0.35);
+    }
+    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(25,135,84,0.45); }
+    .btn-shop {
+      background: white;
+      color: var(--ink);
+      border: 2px solid var(--border);
+      padding: 14px 32px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .btn-shop:hover { border-color: var(--ink); background: var(--ink); color: white; }
 
-  @keyframes bounce {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-10px); }
-  }
+    /* ---- Confetti ---- */
+    .confetti-piece {
+      position: fixed;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: fall linear forwards;
+      z-index: 0;
+    }
+    @keyframes fall {
+      0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+      100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+    }
 
-  @media(max-width:576px){
-    .thankyou-box { padding: 2rem 1.5rem; }
-    .thankyou-box h2 { font-size: 1.6rem; }
-    .thankyou-box h1 { font-size: 0.95rem; }
-    .thankyou-box i { font-size: 3.5rem; }
-  }
-</style>
+    /* ---- Print Styles ---- */
+    @media print {
+      body { background: white; padding: 0; }
+      .action-btns, .success-banner, .confetti-piece { display: none !important; }
+      #invoiceCard { box-shadow: none; border-radius: 0; animation: none; }
+      .invoice-footer { background: white; }
+    }
+
+    @media (max-width: 600px) {
+      .invoice-header { padding: 24px 20px; }
+      .invoice-body   { padding: 24px 20px; }
+      .invoice-footer { padding: 16px 20px; flex-direction: column; }
+      .invoice-meta   { text-align: left; }
+      .success-banner h1 { font-size: 1.5rem; }
+    }
+  </style>
 </head>
 <body>
 
-<div class="confetti" id="confetti"></div>
+  <!-- Loading State -->
+  <div id="loadingState">
+    <div class="spinner-ring"></div>
+    <p class="text-muted">Fetching your receipt...</p>
+  </div>
 
-<div class="thankyou-box">
-  <div class="store-name">The Local Basket</div>
-  <i class="bi bi-check-circle-fill"></i>
-  <h2>Thank You!</h2>
-  <p>Your order has been successfully placed.<br>
-  We have received your payment and a confirmation email has been sent to you.</p>
-  <h1>Do not close or refresh this page...</h1>
-  <div class="countdown">the page will automatically redirect in <span id="seconds">10</span> seconds...</div>
-  <button class="btn-home" onclick="window.location.href='/'">Shop More</button>
-</div>
+  <!-- Invoice (hidden until loaded) -->
+  <div id="receiptRoot" style="display:none;">
 
+    <!-- Success Banner -->
+    <div class="success-banner">
+      <div class="success-icon"><i class="bi bi-check-lg"></i></div>
+      <h1>Order Confirmed! 🎉</h1>
+      <p>Thank you for shopping with us. Your invoice is below.</p>
+    </div>
 
+    <!-- Invoice Card -->
+    <div id="invoiceCard">
+      <!-- Header -->
+      <div class="invoice-header">
+        <div style="display:flex;align-items:center;gap:16px;">
+          <img src="/images/Logo.png" alt="The Local Basket Logo"
+            style="width:70px;height:70px;object-fit:contain;background:white;border-radius:10px;padding:4px;"
+            onerror="this.style.display='none'">
+          <div>
+            <div class="brand-name">The Local Basket</div>
+            <div class="brand-tagline">Crochet Handmade Fashion Accessories</div>
+            <div class="brand-tagline" style="margin-top:3px;">New Market, Pakyong, East Sikkim</div>
+            <div class="brand-tagline">tlbpkg@gmail.com</div>
+            <div class="brand-tagline">+91 9609010193 | +91 7872778009</div>
+          </div>
+        </div>
+        <div class="invoice-meta">
+          <div class="invoice-label">Invoice</div>
+          <div class="invoice-value" id="invoiceNumber">—</div>
+          <div class="invoice-date" id="invoiceDate">—</div>
+        </div>
+      </div>
 
+      <!-- Body -->
+      <div class="invoice-body">
+        <div class="row g-4 mb-2">
+          <!-- Bill To -->
+          <div class="col-sm-6">
+            <div class="section-label">Bill To</div>
+            <div class="info-block">
+              <p class="name" id="custName">—</p>
+              <p id="custEmail">—</p>
+              <p id="custPhone">—</p>
+            </div>
+          </div>
+          <!-- Ship To -->
+          <div class="col-sm-6">
+            <div class="section-label">Ship To</div>
+            <div class="info-block">
+              <p class="name" id="shipName">—</p>
+              <p id="shipAddress">—</p>
+              <p id="shipPincode">—</p>
+            </div>
+          </div>
+        </div>
 
+        <!-- Items Table -->
+        <div class="section-label mt-4">Order Items</div>
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;">Product</th>
+              <th style="text-align:right;">Rate (₹)</th>
+              <th style="text-align:right;">Qty</th>
+              <th style="text-align:right;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody">
+            <!-- Rows injected by JS -->
+          </tbody>
+        </table>
 
+        <!-- Totals -->
+        <div class="totals-section" id="totalsSection">
+          <!-- Injected by JS -->
+        </div>
 
+        <!-- Payment ID -->
+        <div class="payment-id-box">
+          <i class="bi bi-shield-check"></i>
+          <div>
+            <div class="section-label" style="margin-bottom:2px;">Payment Reference</div>
+            <div class="pid" id="paymentIdDisplay">—</div>
+          </div>
+        </div>
+      </div>
 
+      <!-- Footer -->
+      <div class="invoice-footer">
+        <div class="note">Thank you for your order! We'll process it shortly. 🙏</div>
+        <div class="note">© 2026 The Local Basket. All rights reserved.</div>
+      </div>
+    </div>
 
+    <!-- Action Buttons -->
+    <div class="action-btns">
+      <button class="btn-download" id="downloadBtn">
+        <i class="bi bi-download"></i> Download Receipt (PDF)
+      </button>
+      <a href="/" class="btn-shop">
+        <i class="bi bi-bag-heart"></i> Continue Shopping
+      </a>
+    </div>
 
-<script>
-  // Countdown
-  let countdown = 10;
-  const secondsEl = document.getElementById("seconds");
-  const interval = setInterval(() => {
-    countdown--;
-    if (countdown <= 0) {
-      clearInterval(interval);
-      window.location.href = "/";
-    } else {
-      secondsEl.textContent = countdown;
+  </div><!-- /receiptRoot -->
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ---- Helpers ----
+    const fmt = (n) => Number(n || 0).toFixed(2);
+    const esc = (s) => String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // ---- Read payment ID from URL ----
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get('pid');
+
+    // ---- Confetti ----
+    function launchConfetti() {
+      const colors = ['#198754','#20c997','#ffc107','#fd7e14','#0dcaf0','#d63384'];
+      for (let i = 0; i < 60; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.left  = Math.random() * 100 + 'vw';
+        el.style.background = colors[Math.floor(Math.random() * colors.length)];
+        el.style.animationDuration = (2 + Math.random() * 3) + 's';
+        el.style.animationDelay    = (Math.random() * 1.5) + 's';
+        el.style.width = el.style.height = (5 + Math.random() * 8) + 'px';
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove());
+      }
     }
-  }, 1000);
 
-  // Confetti generation
-  const confettiContainer = document.getElementById('confetti');
-  const colors = ['#FFD700','#FF6347','#4BCFFA','#FF69B4','#28a745'];
-  const numPieces = 50;
+    // ---- Render invoice ----
+    function renderReceipt(d) {
+      // Format invoice number from payment ID
+      const shortId = d.payment_id.replace(/^DEV-/, '').slice(-8).toUpperCase();
+      document.getElementById('invoiceNumber').textContent = '#TLB-' + shortId;
 
-  for(let i=0; i<numPieces; i++){
-    const confetti = document.createElement('div');
-    confetti.classList.add('confetti-piece');
-    confetti.style.left = Math.random() * 100 + 'vw';
-    confetti.style.animationDuration = (2 + Math.random()*3) + 's';
-    confetti.style.width = confetti.style.height = (5 + Math.random()*8) + 'px';
-    confetti.style.background = colors[Math.floor(Math.random()*colors.length)];
-    confettiContainer.appendChild(confetti);
-  }
-</script>
+      const dateStr = d.date
+        ? new Date(d.date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+        : new Date().toLocaleDateString('en-IN');
+      document.getElementById('invoiceDate').textContent = dateStr;
 
+      const s = d.shipping || {};
+      document.getElementById('custName').textContent    = esc(s.name)  || '—';
+      document.getElementById('custEmail').textContent   = esc(s.email) || esc(d.customer_email) || '—';
+      document.getElementById('custPhone').textContent   = esc(s.phone) || '—';
+      document.getElementById('shipName').textContent    = esc(s.name)  || '—';
+      document.getElementById('shipAddress').textContent = esc(s.address) || '—';
+      document.getElementById('shipPincode').textContent = s.pincode ? 'PIN: ' + esc(s.pincode) : '';
+      document.getElementById('paymentIdDisplay').textContent = d.payment_id;
+
+      // Items
+      const tbody = document.getElementById('itemsBody');
+      const items = d.items || [];
+      let subtotal = 0;
+      tbody.innerHTML = items.map(item => {
+        const lineTotal = Number(item.price || 0) * Number(item.qty || 1);
+        subtotal += lineTotal;
+        return `<tr>
+          <td>${esc(item.name)}</td>
+          <td style="text-align:right;">₹${fmt(item.price)}</td>
+          <td style="text-align:right;">${item.qty}</td>
+          <td style="text-align:right;font-weight:600;">₹${fmt(lineTotal)}</td>
+        </tr>`;
+      }).join('');
+
+      // Totals
+      const coupon   = d.coupon || {};
+      const discount = Number(coupon.discount || 0);
+      const shipping = subtotal > 400 ? 0 : 50;
+      // Use server grand_total if available, else compute
+      const grandTotal = d.grand_total > 0 ? d.grand_total : (subtotal + shipping - discount);
+
+      let totalsHtml = `
+        <div class="total-row">
+          <span>Subtotal</span>
+          <span>₹${fmt(subtotal)}</span>
+        </div>
+        <div class="total-row">
+          <span>Shipping</span>
+          <span>${shipping === 0 ? '<span class="text-success fw-semibold">Free</span>' : '₹' + fmt(shipping)}</span>
+        </div>`;
+      if (discount > 0) {
+        totalsHtml += `
+          <div class="total-row discount-row">
+            <span>Discount <span class="coupon-badge">${esc(coupon.code || '')}</span></span>
+            <span>- ₹${fmt(discount)}</span>
+          </div>`;
+      }
+      totalsHtml += `
+        <div class="total-row grand">
+          <span>Grand Total</span>
+          <span>₹${fmt(grandTotal)}</span>
+        </div>`;
+      document.getElementById('totalsSection').innerHTML = totalsHtml;
+
+      // Show receipt
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('receiptRoot').style.display  = 'block';
+
+      launchConfetti();
+    }
+
+    // ---- Fallback receipt (DEV mode or API unavailable) ----
+    function renderFallback(paymentId) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('receiptRoot').style.display  = 'block';
+
+      const shortId = String(paymentId || 'UNKNOWN').replace(/^DEV-/, '').slice(-8).toUpperCase();
+      document.getElementById('invoiceNumber').textContent    = '#TLB-' + shortId;
+      document.getElementById('invoiceDate').textContent      = new Date().toLocaleDateString('en-IN');
+      document.getElementById('custName').textContent         = 'Valued Customer';
+      document.getElementById('custEmail').textContent        = '—';
+      document.getElementById('custPhone').textContent        = '—';
+      document.getElementById('shipName').textContent         = '—';
+      document.getElementById('shipAddress').textContent      = '—';
+      document.getElementById('shipPincode').textContent      = '';
+      document.getElementById('paymentIdDisplay').textContent = paymentId || '—';
+      document.getElementById('itemsBody').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Order details will appear in your profile shortly.</td></tr>';
+      document.getElementById('totalsSection').innerHTML = '';
+
+      launchConfetti();
+    }
+
+    // ---- Fetch & render ----
+    async function loadReceipt() {
+      if (!pid) {
+        renderFallback('—');
+        return;
+      }
+
+      // First: check if main.js saved a receipt snapshot to localStorage
+      let cached = null;
+      try {
+        const raw = localStorage.getItem('tlb_receipt_' + pid);
+        if (raw) cached = JSON.parse(raw);
+      } catch (_) {}
+
+      // Try the server (it may still be processing the webhook)
+      let data = null;
+      for (let attempt = 0; attempt < 6; attempt++) {
+        try {
+          const res = await fetch('/api/receipt/' + encodeURIComponent(pid));
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success) { data = json; break; }
+          }
+        } catch (_) {}
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      if (data) {
+        // Server has it — clean up localStorage
+        try { localStorage.removeItem('tlb_receipt_' + pid); } catch (_) {}
+        renderReceipt(data);
+      } else if (cached) {
+        // Server not ready yet — use the cached snapshot from localStorage
+        console.log('📦 Using cached receipt from localStorage');
+        renderReceipt({ ...cached, payment_id: pid });
+      } else {
+        renderFallback(pid);
+      }
+    }
+
+    // ---- Expose a helper for main.js to call right before redirect ----
+    // (written to localStorage so thankyou.html can render instantly)
+    window.__tlbSaveReceipt = function(paymentId, orderSnapshot) {
+      try {
+        localStorage.setItem('tlb_receipt_' + paymentId, JSON.stringify({
+          date: new Date().toISOString(),
+          grand_total: orderSnapshot.grandTotal || 0,
+          customer_email: orderSnapshot.shipping?.email || '',
+          shipping: orderSnapshot.shipping || {},
+          items: orderSnapshot.items || [],
+          coupon: orderSnapshot.coupon || {},
+        }));
+      } catch (_) {}
+    };
+
+    // ---- Download PDF ----
+    document.addEventListener('DOMContentLoaded', () => {
+      loadReceipt();
+
+      document.getElementById('downloadBtn').addEventListener('click', () => {
+        window.print();
+      });
+    });
+  </script>
 </body>
 </html>

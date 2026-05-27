@@ -3,66 +3,74 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Shop premium local products, freshly curated and delivered right to your door. Experience The Local Basket.">
+    <meta name="theme-color" content="#ffffff">
     <title>The Local Basket - Premium Local Products</title>
-
     <link rel="icon" type="image/png" href="images/favicon.png">
+    <link rel="manifest" href="/manifest.json">
 
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
-
+    <link rel="stylesheet" href="css/styles.min.css">
 </head>
 
 <body>
-
     <nav class="myNav">
         <div class="container-fluid">
-            <a href="index.html"><img src="images/logo.PNG" alt="The Local Basket" style="height:50px;"></a>
-            <input type="text" id="searchInput" placeholder="Search products...">
-            <button type="button" class="btn-cart" data-bs-toggle="modal" data-bs-target="#cartModal">
-                <i class="bi bi-cart3 fs-4"></i>
-                <span class="cart-count badge bg-danger">0</span>
+            <a href="index.html" class="d-flex align-items-center text-decoration-none">
+                <img src="images/logo.PNG" alt="The Local Basket" class="nav-brand-img">
+            </a>
+            
+            <div class="search-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="text" id="searchInput" placeholder="Search curated products...">
+            </div>
+            
+            <button type="button" class="btn-cart spa-cart-btn">
+                <i class="bi bi-bag"></i>
+                <span class="cart-count">0</span>
             </button>
         </div>
     </nav>
 
-    <!--     <div class="festive-offer-banner text-center py-2">
-        🎉 Festive Offer: <strong>10% OFF</strong> on all products! Hurry, limited time only! 🎁
-    </div>
--->
+    <!-- SPA: HOME PAGE -->
+    <div id="homePage">
 
     <section class="hero-section">
         <img src="images/images.png" alt="Premium Products" class="hero-image">
         <div class="hero-overlay">
-            <h1>Premium Local Products</h1>
-            <p>Curated selection from local artisans & businesses. Quality you can trust.</p>
-            <a href="#featured" class="btn-accent">Shop Now</a>
+            <h1>Locally Crafted.<br>Globally Loved.</h1>
+            <p>A curated selection from local artisans and businesses. Uncompromising quality you can trust.</p>
+            <a href="#featured" class="btn-accent">Explore the Collection</a>
         </div>
     </section>
 
-    <section id="featured" class="container">
-        <!-- Seller Filter -->
-        <div class="seller-filter mb-4 p-3 bg-white rounded shadow-sm">
-            <h6 class="fw-bold mb-3"><i class="bi bi-shop me-2"></i>Shop by Seller</h6>
-            <div id="sellerList" class="d-flex gap-2 overflow-x-auto pb-2">
-                <button class="btn btn-sm btn-outline-success active" onclick="filterBySeller(null)">All Shops</button>
-                <!-- Sellers injected here -->
+    <div class="seller-filter-container" id="featured">
+        <div class="seller-filter">
+            <h6>Curated Shops</h6>
+            <div id="sellerList">
+                <button type="button" class="active" id="allShopsBtn">All Shops</button>
+                <!-- Sellers injected here via JS -->
             </div>
         </div>
+    </div>
 
+    <section class="products-container">
         <div class="products-grid"></div>
         <div id="noResults" class="text-center py-5" style="display: none;">
-            <i class="bi bi-search display-1 text-muted"></i>
-            <h3 class="mt-3">No products found</h3>
+            <i class="bi bi-search" style="font-size: 3rem; color: var(--color-text-light);"></i>
+            <h3 class="mt-4" style="font-family: var(--font-sans); font-weight: 500;">No products found</h3>
             <p class="text-muted">Try adjusting your search terms</p>
         </div>
     </section>
 
+    <!-- Modals that JS uses -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content bg-transparent border-0 shadow-none">
@@ -74,115 +82,151 @@
 
     <div id="cart-message" class="cartMsg">Item added to cart!</div>
 
-    <div class="modal fade" id="cartModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content rounded-4 shadow">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title">
-                        <i class="bi bi-cart3 me-2"></i>Your Cart
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal fade d-none" id="cartModal" tabindex="-1">
+        <div class="modal-dialog"></div>
+    </div>
+
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active nav-home-btn">
+            <i class="bi bi-house-door"></i>
+            <span>Home</span>
+        </a>
+        <a href="#featured" class="nav-item">
+            <i class="bi bi-search"></i>
+            <span>Explore</span>
+        </a>
+        <a href="#" class="nav-item spa-cart-btn">
+            <div class="position-relative">
+                <i class="bi bi-bag"></i>
+                <span class="cart-count badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" style="font-size: 0.65rem;" id="mobileCartCount">0</span>
+            </div>
+            <span>Cart</span>
+        </a>
+        <a href="profile.html" class="nav-item">
+            <i class="bi bi-person"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <footer class="footer">
+        <div class="container" style="max-width: 1400px; margin: 0 auto;">
+            <div class="row gy-5">
+                <div class="col-md-4">
+                    <h5 class="fw-normal">The Local Basket</h5>
+                    <p style="color: var(--color-text-light); max-width: 300px; font-weight: 300;">
+                        Curated, locally sourced products supporting artisans & small businesses.
+                    </p>
+                    <div class="d-flex gap-3 social-links mt-4">
+                        <a href="#"><i class="bi bi-facebook"></i></a>
+                        <a href="https://www.instagram.com/thelocalbaskets" target="_blank"><i class="bi bi-instagram"></i></a>
+                        <a href="https://wa.me/+919609010193" target="_blank"><i class="bi bi-whatsapp"></i></a>
+                    </div>
                 </div>
 
-                <div class="modal-body" id="cartBody">
-                    <!-- Cart items will be dynamically injected here -->
+                <div class="col-6 col-md-2 offset-md-1">
+                    <h6 class="fw-normal">Client Care</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="FAQs.html" class="footer-link">FAQs</a></li>
+                        <li><a href="shipping.html" class="footer-link">Shipping</a></li>
+                        <li><a href="return.html" class="footer-link">Returns</a></li>
+                        <li><a href="contactus.html" class="footer-link">Contact</a></li>
+                        <li><a href="login.html" class="footer-link">Portal Login</a></li>
+                    </ul>
                 </div>
-                <!-- Cart Summary -->
-                <div id="cartSummary" class="px-4 pb-3"></div>
 
+                <div class="col-6 col-md-2">
+                    <h6 class="fw-normal">Explore</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" id="scrollToTop" class="footer-link">The Collection</a></li>
+                        <li><a href="#" id="newArrivals" class="footer-link">New Arrivals</a></li>
+                        <li><a href="#" id="offers" class="footer-link">Privileges</a></li>
+                    </ul>
+                </div>
 
+                <div class="col-md-3">
+                    <h6 class="fw-normal">Contact</h6>
+                    <div style="color: var(--color-text-light); font-weight: 300;">
+                        <p class="mb-2">New Market, Pakyong, East Sikkim</p>
+                        <p class="mb-2">tlbpkg@gmail.com</p>
+                        <p class="mb-0">+91 9609010193</p>
+                        <p class="mb-0">+91 7872778009</p>
+                    </div>
+                </div>
+            </div>
 
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 50px 0 30px;">
 
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        Continue Shopping
-                    </button>
-                    <button type="button" class="btn btn-primary" id="checkoutBtn">
-                        Place Order & Pay
-                    </button>
+            <div class="text-center" style="color: var(--color-text-light); font-size: 0.9rem; font-weight: 300;">
+                &copy; 2026 The Local Basket. All rights reserved.
+            </div>
+        </div>
+    </footer>
+    </div> <!-- END SPA: HOME PAGE -->
+
+    <!-- SPA: LOGIN OVERLAY -->
+    <div id="loginOverlay" class="d-none" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index: 9999; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); overflow-y: auto;">
+        <button class="btn btn-close position-absolute top-0 end-0 m-4 shadow-none" id="closeLoginOverlay" style="width: 32px; height: 32px;"></button>
+        <div id="loginOverlayRoot" class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;"></div>
+    </div>
+
+    <!-- SPA: CART PAGE -->
+    <div id="cartPage" class="d-none" style="min-height: 100vh; background: #f8f9fa;">
+        <nav class="myNav">
+            <div class="container-fluid d-flex align-items-center">
+                <button class="btn btn-light rounded-circle shadow-sm me-3" id="backToShopBtn" style="width: 45px; height: 45px;"><i class="bi bi-arrow-left"></i></button>
+                <h4 class="font-playfair mb-0 ms-2">Your Shopping Bag</h4>
+            </div>
+        </nav>
+        
+        <div class="container py-5 mt-5">
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="bg-white p-4 rounded-4 shadow-sm" id="cartBody">
+                        <!-- Cart items and shipping info injected here -->
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div id="cartSummary">
+                        <!-- Summary injected here -->
+                    </div>
+                    <div class="bg-white p-4 rounded-4 shadow-sm mt-4">
+                        <!-- The fake button visible to users -->
+                        <button type="button" class="btn btn-dark w-100 py-3 rounded-pill" id="fakeCheckoutBtn">Proceed to Checkout</button>
+                        <!-- The real button tied to the obfuscated logic (hidden) -->
+                        <button type="button" class="btn btn-dark d-none" id="checkoutBtn">Real Checkout</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <footer class="footer py-5">
-        <div class="container">
-            <div class="row gy-4 align-items-start">
-
-                <!-- Brand Info -->
-                <div class="col-md-4">
-                    <h5 class="fw-bold mb-3">The Local Basket</h5>
-                    <p class="small mb-4">
-                        Curated, locally sourced products supporting artisans & small businesses.
-                    </p>
-                    <div class="d-flex gap-3 social-links">
-                        <a href="#" class="footer-icon"><i class="bi bi-facebook"></i></a>
-                        <a href="https://www.instagram.com/thelocalbaskets" target="_blank" class="footer-icon"><i
-                                class="bi bi-instagram"></i></a>
-                        <a href="https://wa.me/+919609010193" target="_blank" class="footer-icon"><i
-                                class="bi bi-whatsapp"></i></a>
-                    </div>
-                </div>
-
-                <!-- Help Section -->
-                <div class="col-6 col-md-2">
-                    <h6 class="fw-semibold mb-3">Help</h6>
-                    <ul class="list-unstyled small">
-                        <li><a href="FAQs.html" class="footer-link">FAQs</a></li>
-                        <li><a href="shipping.html" class="footer-link">Shipping</a></li>
-                        <li><a href="return.html" class="footer-link">Returns</a></li>
-                        <li><a href="contactus.html" class="footer-link">Contact Us</a></li>
-                        <li><a href="login.html" class="footer-link">Admin/Seller Login</a></li>
-                    </ul>
-                </div>
-
-                <!-- Quick Links (Optional for balance) -->
-                <div class="col-6 col-md-2">
-                    <h6 class="fw-semibold mb-3">Shop</h6>
-                    <ul class="list-unstyled small">
-                        <li><a href="#" id="scrollToTop" class="footer-link">All Products</a></li>
-                        <li><a href="#" id="newArrivals" class="footer-link">New Arrivals</a></li>
-                        <li><a href="#" id="offers" class="footer-link">Offers</a></li>
-                    </ul>
-                </div>
-
-                <!-- Contact Info -->
-                <div class="col-md-4">
-                    <h6 class="fw-semibold mb-3">Get in Touch</h6>
-                    <p class="small mb-1"><i class="bi bi-geo-alt me-2"></i>New Market, Pakyong, East Sikkim</p>
-                    <p class="small mb-1"><i class="bi bi-envelope me-2"></i>tlbpkg@gmail.com</p>
-                    <p class="small"><i class="bi bi-phone me-2"></i>+919609010193 | +917872778009 | +918116134446 |
-                        +918348945765
-                    </p>
-                </div>
-            </div>
-
-            <hr class="border-secondary mt-4 mb-3" style="opacity: 0.3;">
-
-            <div class="text-center small" style="opacity: 0.8;">
-                &copy; 2025 <span style="color: var(--accent); font-weight: 600;">The Local Basket</span>. All rights
-                reserved.
-            </div>
-        </div>
-    </footer>
-
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="/js/tlb-receipt-shim.obf.js"></script>
     <script src="/js/main.js" defer></script>
-    <script src="/js/app.js" defer></script>
-
+    <script src="/js/app.obf.js" defer></script>
+    <script src="/js/customer.obf.js" defer></script>
 
     <script>
+        document.getElementById("allShopsBtn").addEventListener("click", function(e) {
+            if (typeof window.filterBySeller === 'function') {
+                window.filterBySeller(null, this);
+            }
+        });
+
         document.getElementById("scrollToTop").addEventListener("click", function (e) {
             e.preventDefault();
-            window.scrollTo({
-                top: 0,
-                behavior: "smooth"
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+        
+        document.querySelectorAll(".nav-home-btn").forEach(btn => {
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
             });
         });
 
-        // Coming soon alerts
         document.getElementById("newArrivals").addEventListener("click", function (e) {
             e.preventDefault();
             alert("🛍️ New Arrivals - Coming Soon!");
@@ -193,9 +237,5 @@
             alert("🎁 Exciting Offers - Coming Soon!");
         });
     </script>
-
-
-
 </body>
-
 </html>

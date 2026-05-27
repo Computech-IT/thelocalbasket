@@ -1,650 +1,906 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Basket | Admin Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        :root {
-            --sidebar-bg: #1a1a1a;
-            --sidebar-hover: #2d2d2d;
-            --accent: #25D366;
-            --accent-hover: #1eb157;
-            --bg: #f5f7fa;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>The Local Basket | Admin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --sidebar-bg: #1a1a2e;
+      --sidebar-hover: #16213e;
+      --accent: #25D366;
+      --accent2: #198754;
+      --bg: #f0f4f8;
+      --sidebar-w: 260px;
+    }
 
-        body {
-            background: var(--bg);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            overflow-x: hidden;
-        }
+    * { box-sizing: border-box; }
 
-        .sidebar {
-            height: 100vh;
-            width: 260px;
-            position: fixed;
-            left: 0;
-            top: 0;
-            background: var(--sidebar-bg);
-            color: #fff;
-            padding-top: 2rem;
-            z-index: 1000;
-            transition: all 0.3s;
-        }
+    body {
+      background: var(--bg);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      margin: 0;
+    }
 
-        .sidebar-brand {
-            padding: 0 1.5rem 2rem;
-            font-weight: 800;
-            font-size: 1.5rem;
-            color: var(--accent);
-        }
+    /* ===================== SIDEBAR ===================== */
+    .sidebar {
+      height: 100vh;
+      width: var(--sidebar-w);
+      position: fixed;
+      left: 0; top: 0;
+      background: var(--sidebar-bg);
+      color: #fff;
+      z-index: 1040;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+    }
 
-        .nav-link {
-            padding: 0.8rem 1.5rem;
-            color: #adb5bd;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.2s;
-        }
+    .sidebar-brand {
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-brand img {
+      width: 38px; height: 38px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: white;
+      padding: 2px;
+    }
+    .sidebar-brand span {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
 
-        .nav-link:hover,
-        .nav-link.active {
-            color: #fff;
-            background: var(--sidebar-hover);
-        }
+    .sidebar nav { flex: 1; padding: 1rem 0; }
 
-        .nav-link.active {
-            border-right: 4px solid var(--accent);
-        }
+    .nav-link {
+      padding: 0.75rem 1.5rem;
+      color: #adb5bd;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+      border: none;
+      background: none;
+      width: 100%;
+      font-size: 0.92rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .nav-link:hover { color: #fff; background: var(--sidebar-hover); }
+    .nav-link.active { color: #fff; background: var(--sidebar-hover); border-right: 4px solid var(--accent); }
+    .nav-link i { font-size: 1.1rem; width: 20px; }
 
-        .main-content {
-            margin-left: 260px;
-            padding: 2rem;
-        }
+    .sidebar-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
 
-        .stat-card {
-            background: #fff;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            border: none;
-        }
+    /* ===================== OVERLAY ===================== */
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1039;
+    }
 
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-        }
+    /* ===================== TOPBAR ===================== */
+    .topbar {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      border-bottom: 1px solid #e9ecef;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 100;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .topbar-title { font-size: 1.1rem; font-weight: 700; color: #1a1a2e; }
+    .topbar-right { margin-left: auto; font-size: 0.8rem; color: #6c757d; }
 
-        .table-container {
-            background: #fff;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            margin-top: 2rem;
-        }
+    .hamburger {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: #1a1a2e;
+      cursor: pointer;
+      padding: 4px;
+      display: none;
+    }
 
-        .btn-accent {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 0.5rem;
-            padding: 0.5rem 1.2rem;
-            font-weight: 600;
-        }
+    /* ===================== MAIN ===================== */
+    .main-content {
+      margin-left: var(--sidebar-w);
+      min-height: 100vh;
+    }
 
-        .btn-accent:hover {
-            background: var(--accent-hover);
-            color: #fff;
-        }
+    .content-body { padding: 1.5rem; }
 
-        .product-img-preview {
-            width: 40px;
-            height: 40px;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-    </style>
+    /* ===================== CARDS ===================== */
+    .stat-card {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border: none;
+      height: 100%;
+    }
+    .stat-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 0.75rem;
+    }
+    .stat-label { font-size: 0.78rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; margin: 0; }
+
+    /* ===================== TABLE ===================== */
+    .table-card {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      margin-top: 1.5rem;
+    }
+    .table-card h5 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+
+    .table th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    .table td { font-size: 0.88rem; vertical-align: middle; }
+
+    /* ===================== SALES ===================== */
+    .order-row { cursor: pointer; }
+    .order-row:hover { background: #f8f9fa; }
+
+    .badge-paid { background: #d1fae5; color: #065f46; font-size: 0.7rem; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+
+    /* ===================== BUTTONS ===================== */
+    .btn-accent {
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 0.5rem;
+      padding: 0.45rem 1rem; font-weight: 600; font-size: 0.85rem;
+    }
+    .btn-accent:hover { background: #1eb157; color: #fff; }
+
+    .product-img-preview {
+      width: 36px; height: 36px;
+      object-fit: cover; border-radius: 6px;
+    }
+
+    /* ===================== PRINT INVOICE ===================== */
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100% !important;
+        background: white !important;
+        padding: 20px !important;
+        z-index: 99999 !important;
+        font-size: 13px !important;
+      }
+    }
+
+    #printArea {
+      display: none;
+    }
+
+    .print-invoice {
+      max-width: 400px;
+      font-family: 'Inter', sans-serif;
+    }
+    .print-header {
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 2px solid #198754;
+      padding-bottom: 10px; margin-bottom: 12px;
+    }
+    .print-header img { width: 52px; height: 52px; object-fit: contain; }
+    .print-header .brand { font-size: 1.1rem; font-weight: 800; color: #198754; }
+    .print-header .sub   { font-size: 0.7rem; color: #666; }
+    .print-section       { margin-bottom: 10px; }
+    .print-section h6    { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 4px; }
+    .print-section p     { margin: 0 0 2px; font-size: 0.85rem; }
+    .print-table         { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.82rem; }
+    .print-table th      { background: #1a1a2e; color: white; padding: 5px 8px; text-align: left; font-size: 0.72rem; }
+    .print-table td      { padding: 5px 8px; border-bottom: 1px solid #e9ecef; }
+    .print-total         { border-top: 2px solid #1a1a2e; padding: 6px 0; font-weight: 700; font-size: 1rem; color: #198754; }
+    .print-pid           { font-family: monospace; font-size: 0.7rem; color: #888; margin-top: 8px; word-break: break-all; }
+    .print-footer        { border-top: 1px solid #e9ecef; padding-top: 8px; margin-top: 12px; text-align: center; font-size: 0.75rem; color: #888; }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .main-content { margin-left: 0; }
+      .hamburger { display: block; }
+      .content-body { padding: 1rem; }
+      .stat-value { font-size: 1.3rem; }
+    }
+  </style>
 </head>
-
 <body>
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-brand">LOCAL BASKET</div>
-        <nav class="nav flex-column">
-            <a class="nav-link active" href="#" onclick="showSection('overview')"><i class="bi bi-grid"></i>
-                Overview</a>
-            <a class="nav-link" href="#" onclick="showSection('products')"><i class="bi bi-box"></i> Products</a>
-            <a class="nav-link" href="#" onclick="showSection('sellers')"><i class="bi bi-people"></i> Sellers</a>
-            <a class="nav-link" href="#" onclick="showSection('sales')"><i class="bi bi-receipt"></i> Sales</a>
-            <div class="mt-auto">
-                <hr class="mx-3 opacity-25">
-                <a class="nav-link text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-left"></i>
-                    Logout</a>
-            </div>
-        </nav>
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <img src="/images/Logo.png" alt="TLB Logo" onerror="this.style.display='none'">
+      <span>LOCAL BASKET</span>
+    </div>
+    <nav>
+      <button class="nav-link active" data-section="overview"><i class="bi bi-grid-fill"></i> Overview</button>
+      <button class="nav-link" data-section="products"><i class="bi bi-box-seam-fill"></i> Products</button>
+      <button class="nav-link" data-section="sellers"><i class="bi bi-people-fill"></i> Sellers</button>
+      <button class="nav-link" data-section="sales"><i class="bi bi-receipt"></i> Sales & Orders</button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="nav-link text-danger" id="logoutBtn" style="color:#ef4444 !important;">
+        <i class="bi bi-box-arrow-left"></i> Logout
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Topbar -->
+    <div class="topbar">
+      <button class="hamburger" id="hamburgerBtn"><i class="bi bi-list"></i></button>
+      <div class="topbar-title" id="sectionTitle">Overview</div>
+      <div class="topbar-right" id="userInfo">Admin Panel</div>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 id="sectionTitle">Overview</h2>
-            <div id="userInfo" class="text-muted small">Admin Panel</div>
+    <div class="content-body">
+      <!-- ====== OVERVIEW ====== -->
+      <div id="overviewSection">
+        <div class="row g-3 mb-2">
+          <div class="col-6 col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="bi bi-currency-rupee"></i></div>
+              <div class="stat-label">Total Revenue</div>
+              <p class="stat-value" id="statRevenue">₹0</p>
+            </div>
+          </div>
+          <div class="col-6 col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-box-seam"></i></div>
+              <div class="stat-label">Total Products</div>
+              <p class="stat-value" id="statProducts">0</p>
+            </div>
+          </div>
+          <div class="col-6 col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-people"></i></div>
+              <div class="stat-label">Sellers</div>
+              <p class="stat-value" id="statSellers">0</p>
+            </div>
+          </div>
         </div>
 
-        <!-- Overview Section -->
-        <div id="overviewSection">
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i
-                                class="bi bi-currency-rupee"></i></div>
-                        <div class="text-muted small">Total Revenue</div>
-                        <h3 id="statRevenue">₹0.00</h3>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="bi bi-box-seam"></i>
-                        </div>
-                        <div class="text-muted small">Total Products</div>
-                        <h3 id="statProducts">0</h3>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-people"></i></div>
-                        <div class="text-muted small">Sellers</div>
-                        <h3 id="statSellers">0</h3>
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-container">
-                <h5>Recent Sales</h5>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Product</th>
-                                <th>Qty</th>
-                                <th>Total</th>
-                                <th>Date</th>
-                                <th>Customer</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recentSalesBody">
-                            <!-- Dynamically filled -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="table-card">
+          <h5>Recent Orders</h5>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Order Ref</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Total</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="recentSalesBody"></tbody>
+            </table>
+          </div>
         </div>
+      </div>
 
-        <!-- Products Section -->
-        <div id="productsSection" style="display:none;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5>All Products</h5>
-                <button class="btn btn-accent" onclick="openProductModal()"><i class="bi bi-plus-lg"></i> Add
-                    Product</button>
-            </div>
-            <div class="table-container">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Image</th>
-                                <th>Name</th>
-                                <th>Seller</th>
-                                <th>Price</th>
-                                <th>Stock</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productTableBody">
-                            <!-- Dynamically filled -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+      <!-- ====== PRODUCTS ====== -->
+      <div id="productsSection" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h5 class="mb-0">All Products</h5>
+          <button class="btn btn-accent" id="addProductBtn"><i class="bi bi-plus-lg me-1"></i>Add Product</button>
         </div>
+        <div class="table-card p-0 overflow-hidden">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Image</th>
+                  <th>Name</th>
+                  <th class="d-none d-md-table-cell">Seller</th>
+                  <th>Price</th>
+                  <th class="d-none d-sm-table-cell">Stock</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="productTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-        <!-- Sellers Section -->
-        <div id="sellersSection" style="display:none;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5>All Sellers</h5>
-                <button class="btn btn-accent" onclick="openSellerModal()"><i class="bi bi-person-plus"></i> Add
-                    Seller</button>
-            </div>
-            <div class="table-container">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>ID</th>
-                                <th>Username</th>
-                                <th>Business Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sellerTableBody">
-                            <!-- Dynamically filled -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+      <!-- ====== SELLERS ====== -->
+      <div id="sellersSection" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h5 class="mb-0">All Sellers</h5>
+          <button class="btn btn-accent" id="addSellerBtn"><i class="bi bi-person-plus me-1"></i>Add Seller</button>
         </div>
+        <div class="table-card p-0 overflow-hidden">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">ID</th>
+                  <th>Username</th>
+                  <th>Business</th>
+                  <th class="d-none d-md-table-cell">Email</th>
+                  <th>Role</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="sellerTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-        <!-- Sales Section -->
-        <div id="salesSection" style="display:none;">
-            <h5>Full Sales History</h5>
-            <div class="table-container">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Sale ID</th>
-                                <th>Product</th>
-                                <th>Qty</th>
-                                <th>Total</th>
-                                <th>Date</th>
-                                <th>Email</th>
-                                <th>Payment ID</th>
-                            </tr>
-                        </thead>
-                        <tbody id="fullSalesBody">
-                            <!-- Dynamically filled -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+      <!-- ====== SALES ====== -->
+      <div id="salesSection" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h5 class="mb-0">All Orders</h5>
+          <span class="text-muted small" id="salesCount"></span>
         </div>
+        <div class="table-card p-0 overflow-hidden">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Order Ref</th>
+                  <th>Customer</th>
+                  <th class="d-none d-sm-table-cell">Phone</th>
+                  <th class="d-none d-md-table-cell">Items</th>
+                  <th>Total</th>
+                  <th class="d-none d-md-table-cell">Date</th>
+                  <th>Print</th>
+                </tr>
+              </thead>
+              <tbody id="fullSalesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div><!-- /content-body -->
+  </div><!-- /main-content -->
+
+  <!-- ====== PRODUCT MODAL ====== -->
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="productForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="productModalTitle">Add Product</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="productId">
+            <div class="mb-3">
+              <label class="form-label">Product Name</label>
+              <input type="text" class="form-control" id="pName" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="pDesc" rows="3"></textarea>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label">Price (₹)</label>
+                <input type="number" step="0.01" class="form-control" id="pPrice" required>
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label">Quantity</label>
+                <input type="number" class="form-control" id="pQty" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Product Image</label>
+              <input type="file" class="form-control" id="pImage" accept="image/*">
+              <small class="text-muted">Leave empty to keep existing image</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-accent">Save Product</button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 
-    <!-- Product Modal -->
-    <div class="modal fade" id="productModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="productForm">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="productModalTitle">Add Product</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" id="productId">
-                        <div class="mb-3">
-                            <label class="form-label">Product Name</label>
-                            <input type="text" class="form-control" id="pName" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="pDesc" rows="3"></textarea>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Price (₹)</label>
-                                <input type="number" step="0.01" class="form-control" id="pPrice" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Quantity</label>
-                                <input type="number" class="form-control" id="pQty" required>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Product Image</label>
-                            <input type="file" class="form-control" id="pImage" accept="image/*">
-                            <small class="text-muted">Leave empty to keep existing image</small>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-accent">Save Product</button>
-                    </div>
-                </form>
+  <!-- ====== SELLER MODAL ====== -->
+  <div class="modal fade" id="sellerModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="sellerForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="sellerModalTitle">Add New Seller</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="sellerId">
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" id="sUsername" required>
             </div>
-        </div>
-    </div>
-
-    <!-- Seller Modal -->
-    <div class="modal fade" id="sellerModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="sellerForm">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="sellerModalTitle">Add New Seller</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" id="sellerId">
-                        <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" class="form-control" id="sUsername" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" class="form-control" id="sPassword" required>
-                            <small class="text-muted" id="passwordHelp">Leave empty to keep existing password when
-                                editing</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Business Name</label>
-                            <input type="text" class="form-control" id="sBusinessName" required
-                                placeholder="e.g. Green Valley Farm">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email (Optional)</label>
-                            <input type="email" class="form-control" id="sEmail">
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-accent">Create Seller</button>
-                    </div>
-                </form>
+            <div class="mb-3">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-control" id="sPassword" required>
+              <small class="text-muted" id="passwordHelp" style="display:none;">Leave empty to keep existing password</small>
             </div>
-        </div>
+            <div class="mb-3">
+              <label class="form-label">Business Name</label>
+              <input type="text" class="form-control" id="sBusinessName" required placeholder="e.g. Green Valley Farm">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email (Optional)</label>
+              <input type="email" class="form-control" id="sEmail">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-accent" id="sellerSubmitBtn">Create Seller</button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let productModal, sellerModal;
-        let currentUser = null;
+  <!-- ====== HIDDEN PRINT AREA ====== -->
+  <div id="printArea"></div>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            productModal = new bootstrap.Modal(document.getElementById('productModal'));
-            sellerModal = new bootstrap.Modal(document.getElementById('sellerModal'));
-            checkAuth();
-            loadDashboard();
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ===================== INIT =====================
+    let productModal, sellerModal;
+    let currentUser = null;
+    const PHONE1 = '+91 9609010193';
+    const PHONE2 = '+91 7872778009';
+    const LOGO_URL = '/images/Logo.png';
 
-            document.getElementById('productForm').addEventListener('submit', handeProductSubmit);
-            document.getElementById('sellerForm').addEventListener('submit', handleSellerSubmit);
+    const fmt = (n) => Number(n || 0).toFixed(2);
+    const esc = (s) => String(s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      productModal = new bootstrap.Modal(document.getElementById('productModal'));
+      sellerModal  = new bootstrap.Modal(document.getElementById('sellerModal'));
+      checkAuth();
+      loadDashboard();
+
+      // Nav links
+      document.querySelectorAll('.nav-link[data-section]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          closeSidebar();
+          showSection(btn.dataset.section);
         });
+      });
 
-        async function checkAuth() {
-            const res = await fetch('/api/auth/me', { credentials: 'include' });
-            const data = await res.json();
-            if (!data.success || data.user.role !== 'admin') {
-                window.location.replace('/login');
-                return;
-            }
-            currentUser = data.user;
-            document.getElementById('userInfo').textContent = `Logged in as: ${data.user.username}`;
-        }
+      // Hamburger
+      document.getElementById('hamburgerBtn').addEventListener('click', toggleSidebar);
+      document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
 
-        async function logout() {
-            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-            window.location.replace('/login');
-        }
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', logout);
 
-        function showSection(section) {
-            document.getElementById('overviewSection').style.display = section === 'overview' ? 'block' : 'none';
-            document.getElementById('productsSection').style.display = section === 'products' ? 'block' : 'none';
-            document.getElementById('sellersSection').style.display = section === 'sellers' ? 'block' : 'none';
-            document.getElementById('salesSection').style.display = section === 'sales' ? 'block' : 'none';
+      // Product form
+      document.getElementById('productForm').addEventListener('submit', handleProductSubmit);
+      document.getElementById('addProductBtn').addEventListener('click', openProductModal);
 
-            document.getElementById('sectionTitle').textContent = section.charAt(0).toUpperCase() + section.slice(1);
+      // Seller form
+      document.getElementById('sellerForm').addEventListener('submit', handleSellerSubmit);
+      document.getElementById('addSellerBtn').addEventListener('click', openSellerModal);
+    });
 
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-                if (link.textContent.toLowerCase().includes(section)) link.classList.add('active');
-            });
+    // ===================== SIDEBAR =====================
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+    }
 
-            if (section === 'products') loadProducts();
-            if (section === 'sellers') loadSellers();
-            if (section === 'sales') loadFullSales();
-        }
+    // ===================== AUTH =====================
+    async function checkAuth() {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      const data = await res.json();
+      if (!data.success || data.user.role !== 'admin') {
+        window.location.replace('/login');
+        return;
+      }
+      currentUser = data.user;
+      document.getElementById('userInfo').textContent = `👤 ${data.user.username}`;
+    }
 
-        async function loadDashboard() {
-            const res = await fetch('/api/admin/dashboard');
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('statRevenue').textContent = `₹${Number(data.stats.revenue).toFixed(2)}`;
-                document.getElementById('statProducts').textContent = data.stats.products;
-                document.getElementById('statSellers').textContent = data.stats.sellers;
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      window.location.replace('/login');
+    }
 
-                const body = document.getElementById('recentSalesBody');
-                body.innerHTML = '';
-                data.recentSales.forEach(sale => {
-                    body.innerHTML += `
-            <tr>
-              <td>${sale.product_name}</td>
-              <td>${sale.qty}</td>
-              <td>₹${Number(sale.total_price).toFixed(2)}</td>
-              <td>${new Date(sale.sale_date).toLocaleDateString()}</td>
-              <td>${sale.customer_email}</td>
-            </tr>
-          `;
-                });
-            }
-        }
+    // ===================== SECTIONS =====================
+    function showSection(section) {
+      ['overview','products','sellers','sales'].forEach(s => {
+        document.getElementById(s + 'Section').style.display = s === section ? 'block' : 'none';
+      });
+      document.getElementById('sectionTitle').textContent = {
+        overview: 'Overview', products: 'Products', sellers: 'Sellers', sales: 'Sales & Orders'
+      }[section] || section;
+      document.querySelectorAll('.nav-link[data-section]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.section === section);
+      });
+      if (section === 'products') loadProducts();
+      if (section === 'sellers')  loadSellers();
+      if (section === 'sales')    loadFullSales();
+    }
 
-        async function loadProducts() {
-            const res = await fetch('/api/products');
-            const data = await res.json();
-            if (data.success) {
-                const body = document.getElementById('productTableBody');
-                body.innerHTML = '';
-                data.products.forEach(p => {
-                    body.innerHTML += `
-            <tr>
-              <td><img src="${p.image}" class="product-img-preview"></td>
-              <td>${p.name}</td>
-              <td><span class="badge bg-secondary">${p.business_name}</span></td>
-              <td>₹${Number(p.price).toFixed(2)}</td>
-              <td>${p.qty}</td>
-              <td>
-                <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${JSON.stringify(p).replace(/"/g, '&quot;')})"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})"><i class="bi bi-trash"></i></button>
-              </td>
-            </tr>
-          `;
-                });
-            }
-        }
+    // ===================== DASHBOARD =====================
+    async function loadDashboard() {
+      const res = await fetch('/api/admin/dashboard');
+      const data = await res.json();
+      if (!data.success) return;
+      document.getElementById('statRevenue').textContent  = `₹${fmt(data.stats.revenue)}`;
+      document.getElementById('statProducts').textContent = data.stats.products;
+      document.getElementById('statSellers').textContent  = data.stats.sellers;
 
-        async function loadSellers() {
-            const res = await fetch('/api/sellers?all=true');
-            const data = await res.json();
-            if (data.success) {
-                const body = document.getElementById('sellerTableBody');
-                body.innerHTML = '';
-                data.sellers.forEach(s => {
-                    body.innerHTML += `
-                        <tr>
-                            <td>#${s.id}</td>
-                            <td>${s.username}</td>
-                            <td><span class="fw-bold text-success">${s.business_name}</span></td>
-                            <td>${s.email || '-'}</td>
-                            <td><span class="badge bg-info">${s.role}</span></td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary me-1" onclick="editSeller(${JSON.stringify(s).replace(/"/g, '&quot;')})"><i class="bi bi-pencil"></i></button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSeller(${s.id})"><i class="bi bi-trash"></i></button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            }
-        }
+      // Recent sales use the new admin/sales API
+      const sRes = await fetch('/api/admin/sales');
+      const sData = await sRes.json();
+      const body = document.getElementById('recentSalesBody');
+      body.innerHTML = '';
+      if (sData.success && sData.orders.length) {
+        sData.orders.slice(0, 8).forEach(order => buildOverviewRow(body, order));
+      } else {
+        body.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No orders yet</td></tr>';
+      }
+    }
 
-        async function loadFullSales() {
-            // We Use the same dashboard API but can expand later
-            const res = await fetch('/api/admin/dashboard');
-            const data = await res.json();
-            if (data.success) {
-                const body = document.getElementById('fullSalesBody');
-                body.innerHTML = '';
-                data.recentSales.forEach(sale => { // Using recentSales as a proxy for now
-                    body.innerHTML += `
-                    <tr>
-                    <td>#${sale.id}</td>
-                    <td>${sale.product_name}</td>
-                    <td>${sale.qty}</td>
-                    <td>₹${Number(sale.total_price).toFixed(2)}</td>
-                    <td>${new Date(sale.sale_date).toLocaleString()}</td>
-                    <td>${sale.customer_email}</td>
-                    <td><small>${sale.payment_id}</small></td>
-                    </tr>
-                `;
-                });
-            }
-        }
+    function buildOverviewRow(tbody, order) {
+      const s = order.shipping || {};
+      const shortId = String(order.payment_id || '').replace(/^DEV-/, '').slice(-8).toUpperCase();
+      const dateStr = order.sale_date
+        ? new Date(order.sale_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '—';
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><small class="text-muted font-monospace">#TLB-${esc(shortId)}</small></td>
+        <td><span class="fw-semibold">${esc(s.name || order.customer_email)}</span><br><small class="text-muted">${esc(order.customer_email)}</small></td>
+        <td>${order.item_count} item(s)</td>
+        <td>₹${fmt(order.grand_total)}</td>
+        <td><small class="text-muted">${dateStr}</small></td>
+        <td>
+          <button class="btn btn-sm btn-outline-dark rounded-pill print-btn"
+            data-pid="${esc(order.payment_id)}">
+            <i class="bi bi-printer"></i>
+          </button>
+        </td>
+      `;
+      row.querySelector('.print-btn').addEventListener('click', () => printInvoice(order));
+      tbody.appendChild(row);
+    }
 
-        function openProductModal() {
-            document.getElementById('productModalTitle').textContent = 'Add Product';
-            document.getElementById('productId').value = '';
-            document.getElementById('productForm').reset();
-            productModal.show();
-        }
+    // ===================== FULL SALES =====================
+    async function loadFullSales() {
+      const res = await fetch('/api/admin/sales');
+      const data = await res.json();
+      const body = document.getElementById('fullSalesBody');
+      body.innerHTML = '';
 
-        function editProduct(p) {
-            document.getElementById('productModalTitle').textContent = 'Edit Product';
-            document.getElementById('productId').value = p.id;
-            document.getElementById('pName').value = p.name;
-            document.getElementById('pDesc').value = p.description;
-            document.getElementById('pPrice').value = p.price;
-            document.getElementById('pQty').value = p.qty;
-            productModal.show();
-        }
+      if (!data.success || !data.orders.length) {
+        body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No orders yet</td></tr>';
+        document.getElementById('salesCount').textContent = '';
+        return;
+      }
 
-        async function handeProductSubmit(e) {
-            e.preventDefault();
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+      document.getElementById('salesCount').textContent = `${data.orders.length} order(s) total`;
 
-            const id = document.getElementById('productId').value;
-            const formData = new FormData();
-            formData.append('name', document.getElementById('pName').value);
-            formData.append('description', document.getElementById('pDesc').value);
-            formData.append('price', document.getElementById('pPrice').value);
-            formData.append('qty', document.getElementById('pQty').value);
+      data.orders.forEach(order => {
+        const s = order.shipping || {};
+        const shortId = String(order.payment_id || '').replace(/^DEV-/, '').slice(-8).toUpperCase();
+        const dateStr = order.sale_date
+          ? new Date(order.sale_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '—';
 
-            const imgFile = document.getElementById('pImage').files[0];
-            if (imgFile) formData.append('image', imgFile);
+        const itemNames = (order.items || []).map(i => esc(i.name)).join(', ') || '—';
 
-            const url = id ? `/api/products/${id}` : '/api/products';
-            const method = id ? 'PUT' : 'POST';
+        const row = document.createElement('tr');
+        row.className = 'order-row';
+        row.innerHTML = `
+          <td class="ps-3 font-monospace" style="font-size:0.78rem;">#TLB-${esc(shortId)}</td>
+          <td>
+            <span class="fw-semibold d-block">${esc(s.name || '—')}</span>
+            <small class="text-muted">${esc(order.customer_email)}</small>
+          </td>
+          <td class="d-none d-sm-table-cell"><small>${esc(s.phone || '—')}</small></td>
+          <td class="d-none d-md-table-cell" style="max-width:180px;"><small class="text-truncate d-block">${itemNames}</small></td>
+          <td><span class="fw-bold text-success">₹${fmt(order.grand_total)}</span></td>
+          <td class="d-none d-md-table-cell"><small class="text-muted">${dateStr}</small></td>
+          <td>
+            <button class="btn btn-sm btn-outline-success rounded-pill print-btn" data-pid="${esc(order.payment_id)}">
+              <i class="bi bi-printer me-1"></i>Print
+            </button>
+          </td>
+        `;
+        row.querySelector('.print-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          printInvoice(order);
+        });
+        body.appendChild(row);
+      });
+    }
 
-            try {
-                const res = await fetch(url, { method, body: formData });
-                const data = await res.json();
-                if (data.success) {
-                    productModal.hide();
-                    loadProducts();
-                    loadDashboard();
-                } else {
-                    alert("Error: " + (data.error || "Unknown error occurred"));
-                }
-            } catch (err) {
-                alert("Connection failed: " + err.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Save Product';
-            }
-        }
+    // ===================== PRINT INVOICE =====================
+    function printInvoice(order) {
+      const s = order.shipping || {};
+      const items = order.items || [];
+      const coupon = order.coupon || {};
+      const shortId = String(order.payment_id || '').replace(/^DEV-/, '').slice(-8).toUpperCase();
+      const dateStr = order.sale_date
+        ? new Date(order.sale_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : new Date().toLocaleDateString('en-IN');
 
-        async function deleteProduct(id) {
-            if (confirm('Are you sure you want to delete this product?')) {
-                const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.success) {
-                    loadProducts();
-                    loadDashboard();
-                }
-            }
-        }
+      let subtotal = items.reduce((a, i) => a + Number(i.price || 0) * Number(i.qty || 1), 0);
+      const discount = Number(coupon.discount || 0);
+      const shipping = subtotal > 400 ? 0 : 50;
+      const grandTotal = order.grand_total > 0 ? order.grand_total : (subtotal + shipping - discount);
 
-        function openSellerModal() {
-            document.getElementById('sellerModalTitle').textContent = 'Add New Seller';
-            document.getElementById('sellerId').value = '';
-            document.getElementById('sellerForm').reset();
-            document.getElementById('sPassword').required = true;
-            document.getElementById('passwordHelp').style.display = 'none';
-            sellerModal.show();
-        }
+      const itemRows = items.map(i => {
+        const line = Number(i.price || 0) * Number(i.qty || 1);
+        return `<tr>
+          <td>${esc(i.name)}</td>
+          <td style="text-align:right;">₹${fmt(i.price)}</td>
+          <td style="text-align:center;">${i.qty}</td>
+          <td style="text-align:right;">₹${fmt(line)}</td>
+        </tr>`;
+      }).join('');
 
-        function editSeller(s) {
-            document.getElementById('sellerModalTitle').textContent = 'Edit Seller';
-            document.getElementById('sellerId').value = s.id;
-            document.getElementById('sUsername').value = s.username;
-            document.getElementById('sBusinessName').value = s.business_name;
-            document.getElementById('sEmail').value = s.email || '';
-            document.getElementById('sPassword').value = '';
-            document.getElementById('sPassword').required = false;
-            document.getElementById('passwordHelp').style.display = 'block';
-            sellerModal.show();
-        }
+      const couponRow = discount > 0
+        ? `<tr><td colspan="3" style="color:#d9534f;font-size:0.75rem;">Coupon: ${esc(coupon.code || '')}</td><td style="text-align:right;color:#d9534f;">-₹${fmt(discount)}</td></tr>` : '';
 
-        async function handleSellerSubmit(e) {
-            e.preventDefault();
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            const id = document.getElementById('sellerId').value;
-            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${id ? 'Updating...' : 'Creating...'}`;
+      document.getElementById('printArea').innerHTML = `
+        <div class="print-invoice">
+          <div class="print-header">
+            <img src="${LOGO_URL}" alt="Logo" onerror="this.style.display='none'">
+            <div>
+              <div class="brand">The Local Basket</div>
+              <div class="sub">Crochet Handmade Fashion Accessories</div>
+              <div class="sub">New Market, Pakyong, East Sikkim</div>
+              <div class="sub">${PHONE1} | ${PHONE2}</div>
+            </div>
+          </div>
 
-            const payload = {
-                username: document.getElementById('sUsername').value,
-                password: document.getElementById('sPassword').value,
-                business_name: document.getElementById('sBusinessName').value,
-                email: document.getElementById('sEmail').value
-            };
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:10px;">
+            <div><strong>Invoice #TLB-${esc(shortId)}</strong></div>
+            <div>${dateStr}</div>
+          </div>
 
-            const url = id ? `/api/admin/sellers/${id}` : '/api/admin/sellers';
-            const method = id ? 'PUT' : 'POST';
+          <div class="print-section">
+            <h6>SHIP TO</h6>
+            <p><strong>${esc(s.name || '—')}</strong></p>
+            <p>${esc(s.address || '—')}</p>
+            ${s.pincode ? `<p>PIN: ${esc(s.pincode)}</p>` : ''}
+            <p>${esc(s.phone || '—')}</p>
+            <p>${esc(s.email || order.customer_email || '—')}</p>
+          </div>
 
-            try {
-                const res = await fetch(url, {
-                    method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.success) {
-                    sellerModal.hide();
-                    loadSellers();
-                    loadDashboard();
-                    alert(data.message || (id ? "Seller account updated!" : "Seller account created!"));
-                } else {
-                    alert("Error: " + (data.error || "Unknown error"));
-                }
-            } catch (err) {
-                alert("Connection failed: " + err.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = id ? 'Update Seller' : 'Create Seller';
-            }
-        }
+          <table class="print-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align:right;">Rate</th>
+                <th style="text-align:center;">Qty</th>
+                <th style="text-align:right;">Amt</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemRows}
+              <tr>
+                <td colspan="3">Shipping</td>
+                <td style="text-align:right;">${shipping === 0 ? 'Free' : '₹' + fmt(shipping)}</td>
+              </tr>
+              ${couponRow}
+            </tbody>
+          </table>
 
-        async function deleteSeller(id) {
-            if (confirm('Are you sure you want to delete this seller? This will also delete ALL their products.')) {
-                try {
-                    const res = await fetch(`/api/admin/sellers/${id}`, { method: 'DELETE' });
-                    const data = await res.json();
-                    if (data.success) {
-                        loadSellers();
-                        loadDashboard();
-                        alert("Seller and their products deleted.");
-                    } else {
-                        alert("Error: " + (data.error || "Unknown error"));
-                    }
-                } catch (err) {
-                    alert("Connection failed: " + err.message);
-                }
-            }
-        }
-    </script>
+          <div class="print-total d-flex justify-content-between">
+            <span>Grand Total</span>
+            <span>₹${fmt(grandTotal)}</span>
+          </div>
+
+          <div class="print-pid">Payment Ref: ${esc(order.payment_id || '—')}</div>
+
+          <div class="print-footer">
+            Thank you for shopping with The Local Basket! 🧺<br>
+            Handle with care. If you have any questions, contact us at ${PHONE1}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('printArea').style.display = 'block';
+      window.print();
+      document.getElementById('printArea').style.display = 'none';
+    }
+
+    // ===================== PRODUCTS =====================
+    async function loadProducts() {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      if (!data.success) return;
+      const body = document.getElementById('productTableBody');
+      body.innerHTML = '';
+      data.products.forEach(p => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="ps-3"><img src="${esc(p.image)}" class="product-img-preview" onerror="this.src='/images/Logo.png'"></td>
+          <td><span class="fw-semibold">${esc(p.name)}</span></td>
+          <td class="d-none d-md-table-cell"><span class="badge bg-secondary">${esc(p.business_name || '—')}</span></td>
+          <td>₹${fmt(p.price)}</td>
+          <td class="d-none d-sm-table-cell">${p.qty}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1 edit-product-btn"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger del-product-btn"><i class="bi bi-trash"></i></button>
+          </td>
+        `;
+        row.querySelector('.edit-product-btn').addEventListener('click', () => editProduct(p));
+        row.querySelector('.del-product-btn').addEventListener('click', () => deleteProduct(p.id));
+        body.appendChild(row);
+      });
+    }
+
+    function openProductModal() {
+      document.getElementById('productModalTitle').textContent = 'Add Product';
+      document.getElementById('productId').value = '';
+      document.getElementById('productForm').reset();
+      productModal.show();
+    }
+
+    function editProduct(p) {
+      document.getElementById('productModalTitle').textContent = 'Edit Product';
+      document.getElementById('productId').value = p.id;
+      document.getElementById('pName').value = p.name;
+      document.getElementById('pDesc').value = p.description;
+      document.getElementById('pPrice').value = p.price;
+      document.getElementById('pQty').value = p.qty;
+      productModal.show();
+    }
+
+    async function handleProductSubmit(e) {
+      e.preventDefault();
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+      const id = document.getElementById('productId').value;
+      const formData = new FormData();
+      formData.append('name', document.getElementById('pName').value);
+      formData.append('description', document.getElementById('pDesc').value);
+      formData.append('price', document.getElementById('pPrice').value);
+      formData.append('qty', document.getElementById('pQty').value);
+      const imgFile = document.getElementById('pImage').files[0];
+      if (imgFile) formData.append('image', imgFile);
+      try {
+        const res = await fetch(id ? `/api/products/${id}` : '/api/products', {
+          method: id ? 'PUT' : 'POST', body: formData
+        });
+        const data = await res.json();
+        if (data.success) { productModal.hide(); loadProducts(); loadDashboard(); }
+        else alert('Error: ' + (data.error || 'Unknown'));
+      } catch (err) { alert('Network error: ' + err.message); }
+      finally { submitBtn.disabled = false; submitBtn.innerHTML = 'Save Product'; }
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm('Delete this product?')) return;
+      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) { loadProducts(); loadDashboard(); }
+    }
+
+    // ===================== SELLERS =====================
+    async function loadSellers() {
+      const res = await fetch('/api/sellers?all=true');
+      const data = await res.json();
+      if (!data.success) return;
+      const body = document.getElementById('sellerTableBody');
+      body.innerHTML = '';
+      data.sellers.forEach(s => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="ps-3">#${s.id}</td>
+          <td>${esc(s.username)}</td>
+          <td><span class="fw-bold text-success">${esc(s.business_name)}</span></td>
+          <td class="d-none d-md-table-cell">${esc(s.email || '—')}</td>
+          <td><span class="badge bg-info">${esc(s.role)}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1 edit-seller-btn"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger del-seller-btn"><i class="bi bi-trash"></i></button>
+          </td>
+        `;
+        row.querySelector('.edit-seller-btn').addEventListener('click', () => editSeller(s));
+        row.querySelector('.del-seller-btn').addEventListener('click', () => deleteSeller(s.id));
+        body.appendChild(row);
+      });
+    }
+
+    function openSellerModal() {
+      document.getElementById('sellerModalTitle').textContent = 'Add New Seller';
+      document.getElementById('sellerId').value = '';
+      document.getElementById('sellerForm').reset();
+      document.getElementById('sPassword').required = true;
+      document.getElementById('passwordHelp').style.display = 'none';
+      document.getElementById('sellerSubmitBtn').textContent = 'Create Seller';
+      sellerModal.show();
+    }
+
+    function editSeller(s) {
+      document.getElementById('sellerModalTitle').textContent = 'Edit Seller';
+      document.getElementById('sellerId').value = s.id;
+      document.getElementById('sUsername').value = s.username;
+      document.getElementById('sBusinessName').value = s.business_name;
+      document.getElementById('sEmail').value = s.email || '';
+      document.getElementById('sPassword').value = '';
+      document.getElementById('sPassword').required = false;
+      document.getElementById('passwordHelp').style.display = 'block';
+      document.getElementById('sellerSubmitBtn').textContent = 'Update Seller';
+      sellerModal.show();
+    }
+
+    async function handleSellerSubmit(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('sellerSubmitBtn');
+      submitBtn.disabled = true;
+      const id = document.getElementById('sellerId').value;
+      submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${id ? 'Updating...' : 'Creating...'}`;
+      const payload = {
+        username: document.getElementById('sUsername').value,
+        password: document.getElementById('sPassword').value,
+        business_name: document.getElementById('sBusinessName').value,
+        email: document.getElementById('sEmail').value
+      };
+      try {
+        const res = await fetch(id ? `/api/admin/sellers/${id}` : '/api/admin/sellers', {
+          method: id ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) { sellerModal.hide(); loadSellers(); loadDashboard(); alert(data.message || 'Done!'); }
+        else alert('Error: ' + (data.error || 'Unknown'));
+      } catch (err) { alert('Network error: ' + err.message); }
+      finally { submitBtn.disabled = false; submitBtn.textContent = id ? 'Update Seller' : 'Create Seller'; }
+    }
+
+    async function deleteSeller(id) {
+      if (!confirm('Delete this seller and ALL their products?')) return;
+      const res = await fetch(`/api/admin/sellers/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) { loadSellers(); loadDashboard(); alert('Seller deleted.'); }
+      else alert('Error: ' + (data.error || 'Unknown'));
+    }
+  </script>
 </body>
-
 </html>

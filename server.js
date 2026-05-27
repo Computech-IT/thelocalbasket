@@ -148,9 +148,26 @@ async function bootstrapDatabase() {
         sale_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         customer_email VARCHAR(255),
         payment_id VARCHAR(255),
+        shipping_info TEXT,
+        items_json TEXT,
+        coupon_json TEXT,
+        grand_total DECIMAL(10,2),
         FOREIGN KEY(product_id) REFERENCES products(id)
       )
     `).run();
+
+    // Add columns if they don't exist (safe for existing DBs)
+    const alterCols = [
+      { col: 'shipping_info', type: 'TEXT' },
+      { col: 'items_json',    type: 'TEXT' },
+      { col: 'coupon_json',   type: 'TEXT' },
+      { col: 'grand_total',   type: 'DECIMAL(10,2)' },
+    ];
+    for (const { col, type } of alterCols) {
+      try {
+        await db.prepare(`ALTER TABLE sales ADD COLUMN ${col} ${type}`).run();
+      } catch (_) { /* column already exists — ignore */ }
+    }
 
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS coupons (
@@ -162,6 +179,27 @@ async function bootstrapDatabase() {
         max_discount DECIMAL(10,2),
         expires DATETIME,
         message TEXT
+      )
+    `).run();
+
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS customers (
+        id ${PK},
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        full_name VARCHAR(255),
+        phone VARCHAR(20)
+      )
+    `).run();
+
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS wishlists (
+        id ${PK},
+        customer_id INTEGER,
+        product_id INTEGER,
+        FOREIGN KEY(customer_id) REFERENCES customers(id),
+        FOREIGN KEY(product_id) REFERENCES products(id),
+        UNIQUE(customer_id, product_id)
       )
     `).run();
 
@@ -298,6 +336,9 @@ app.get("/seller", isAuthenticated, (_req, res) => res.sendFile(path.join(__dirn
 // Static assets
 app.use("/images", express.static(path.join(__dirname, "public", "images")));
 app.use(express.static(path.join(__dirname, "public")));  // serves index.html for / as fallback
+
+// Suppress favicon 404
+app.get("/favicon.ico", (_req, res) => res.sendFile(path.join(__dirname, "public", "images", "logo.PNG"), { headers: { "Content-Type": "image/png" } }, () => res.status(204).end()));
 
 // ========================
 // Multer (Image Uploads)
@@ -474,6 +515,151 @@ app.get("/oauth2callback", async (req, res) => {
 });
 
 // ========================
+// Customer Endpoints
+// ========================
+
+app.post("/api/customer/register", async (req, res) => {
+  const { email, password, full_name, phone } = req.body;
+  const cleanEmail = sanitize(email);
+  if (!cleanEmail || !password) return res.status(400).json({ error: "Email and password required" });
+  try {
+    const db = await getDb();
+    const existing = await db.prepare("SELECT id FROM customers WHERE email = ?").get(cleanEmail);
+    if (existing) return res.status(400).json({ error: "Email already registered" });
+    const hashed = bcrypt.hashSync(password, 10);
+    const result = await db.prepare("INSERT INTO customers (email, password, full_name, phone) VALUES (?, ?, ?, ?)").run(cleanEmail, hashed, sanitize(full_name), sanitize(phone));
+    req.session.customer_id = !!process.env.DB_HOST ? result[0].insertId : result.lastInsertRowid;
+    req.session.customer_email = cleanEmail;
+    res.json({ success: true, message: "Registered successfully" });
+  } catch (err) {
+    console.error("Register error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.post("/api/customer/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: "Missing fields" });
+  try {
+    const db = await getDb();
+    const user = await db.prepare("SELECT * FROM customers WHERE email = ?").get(email);
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+    req.session.customer_id = user.id;
+    req.session.customer_email = user.email;
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.get("/api/customer/session", (req, res) => {
+  if (req.session.customer_id) {
+    res.json({ loggedIn: true, email: req.session.customer_email });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+app.post("/api/customer/logout", (req, res) => {
+  req.session.customer_id = null;
+  req.session.customer_email = null;
+  res.json({ success: true });
+});
+
+function isCustomer(req, res, next) {
+  if (!req.session.customer_id) return res.status(401).json({ error: "Unauthorized" });
+  next();
+}
+
+app.get("/api/customer/orders", isCustomer, async (req, res) => {
+  try {
+    const db = await getDb();
+    const rows = await db.prepare(`
+      SELECT s.*, p.name as product_name, p.image as product_image 
+      FROM sales s 
+      JOIN products p ON s.product_id = p.id 
+      WHERE s.customer_email = ? 
+      ORDER BY s.sale_date DESC
+    `).all(req.session.customer_email);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load orders" });
+  }
+});
+
+app.get("/api/customer/orders/:id", isCustomer, async (req, res) => {
+  try {
+    const db = await getDb();
+    // 1. Get the specific sale to find its payment_id
+    const targetSale = await db.prepare("SELECT payment_id, sale_date FROM sales WHERE id = ? AND customer_email = ?").get(req.params.id, req.session.customer_email);
+    
+    if (!targetSale || !targetSale.payment_id) {
+      return res.status(404).json({ error: "Invoice not found or unauthorized" });
+    }
+
+    // 2. Fetch all sales that belong to this exact checkout session (payment_id)
+    const invoiceItems = await db.prepare(`
+      SELECT s.*, p.name as product_name, p.price as unit_price
+      FROM sales s
+      JOIN products p ON s.product_id = p.id
+      WHERE s.payment_id = ? AND s.customer_email = ?
+    `).all(targetSale.payment_id, req.session.customer_email);
+
+    // 3. Fetch customer details for the billing address
+    const customer = await db.prepare("SELECT full_name, email, phone FROM customers WHERE email = ?").get(req.session.customer_email);
+
+    res.json({
+      invoice_id: targetSale.payment_id,
+      date: targetSale.sale_date,
+      customer: customer,
+      items: invoiceItems
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load invoice details" });
+  }
+});
+
+app.get("/api/customer/wishlist", isCustomer, async (req, res) => {
+  try {
+    const db = await getDb();
+    const rows = await db.prepare(`
+      SELECT w.id as wishlist_id, p.* 
+      FROM wishlists w
+      JOIN products p ON w.product_id = p.id
+      WHERE w.customer_id = ?
+    `).all(req.session.customer_id);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load wishlist" });
+  }
+});
+
+app.post("/api/customer/wishlist", isCustomer, async (req, res) => {
+  const { product_id } = req.body;
+  if (!product_id) return res.status(400).json({ error: "Product required" });
+  try {
+    const db = await getDb();
+    const existing = await db.prepare("SELECT id FROM wishlists WHERE customer_id = ? AND product_id = ?").get(req.session.customer_id, product_id);
+    if (existing) {
+      await db.prepare("DELETE FROM wishlists WHERE id = ?").run(existing.id);
+      res.json({ success: true, action: "removed" });
+    } else {
+      await db.prepare("INSERT INTO wishlists (customer_id, product_id) VALUES (?, ?)").run(req.session.customer_id, product_id);
+      res.json({ success: true, action: "added" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update wishlist" });
+  }
+});
+
+// ========================
 // Auth Routes
 // ========================
 
@@ -594,33 +780,53 @@ app.post("/create-razorpay-order", async (req, res) => {
 
 app.post("/razorpay-webhook", async (req, res) => {
   try {
+    const incomingSig = req.headers["x-razorpay-signature"] || "";
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-    if (webhookSecret) {
+
+    // Detect DEV-mode simulated payments (payment ID starts with "DEV-")
+    const rawPayment = req.body.payload?.payment?.entity || req.body.payment?.entity || req.body;
+    const isDevMode  = String(rawPayment?.id || "").startsWith("DEV-");
+
+    if (!isDevMode && webhookSecret) {
+      // Production: enforce HMAC signature verification
       const digest = crypto.createHmac("sha256", webhookSecret).update(req.rawBody).digest("hex");
-      if (digest !== req.headers["x-razorpay-signature"]) {
+      if (digest !== incomingSig) {
+        console.warn("❌ Webhook signature mismatch — ignoring.");
         return res.status(400).json({ status: "invalid signature" });
       }
+    } else if (isDevMode) {
+      console.log("🧪 DEV-mode webhook — skipping signature check.");
     }
 
-    const payment = req.body.payload?.payment?.entity || req.body.payment?.entity || req.body;
+    const payment = rawPayment;
     if (!payment) return res.status(400).json({ status: "invalid payload" });
 
     const notes = payment.notes || {};
     const orderData = {
       paymentId: payment.id,
-      grandTotal: (payment.amount || 0) / 100,
+      grandTotal: isDevMode ? safeNum(payment.amount) / 100 : (payment.amount || 0) / 100,
       shipping: notes.shipping ? JSON.parse(String(notes.shipping)) : {},
-      items: notes.items ? JSON.parse(String(notes.items)) : [],
-      coupon: notes.coupon ? JSON.parse(String(notes.coupon)) : null,
+      items:    notes.items    ? JSON.parse(String(notes.items))    : [],
+      coupon:   notes.coupon   ? JSON.parse(String(notes.coupon))   : null,
     };
 
     const db = await getDb();
+    const shippingJson = JSON.stringify(orderData.shipping || {});
+    const itemsJson    = JSON.stringify(orderData.items   || []);
+    const couponJson   = JSON.stringify(orderData.coupon  || {});
+    const grandTotal   = safeNum(orderData.grandTotal);
+
     const insertSale = db.prepare(
-      "INSERT INTO sales (product_id, qty, total_price, customer_email, payment_id) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO sales (product_id, qty, total_price, customer_email, payment_id, shipping_info, items_json, coupon_json, grand_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
 
     for (const item of orderData.items) {
-      await insertSale.run(item.id, item.qty, safeNum(item.price) * safeNum(item.qty), orderData.shipping.email, orderData.paymentId);
+      await insertSale.run(
+        item.id, item.qty,
+        safeNum(item.price) * safeNum(item.qty),
+        orderData.shipping.email, orderData.paymentId,
+        shippingJson, itemsJson, couponJson, grandTotal
+      );
       await db.prepare("UPDATE products SET qty = qty - ? WHERE id = ?").run(item.qty, item.id);
     }
 
@@ -637,6 +843,44 @@ app.post("/razorpay-webhook", async (req, res) => {
 
 // BigInt serialisation fix
 BigInt.prototype.toJSON = function () { return Number(this); };
+
+// ========================
+// Public Receipt Endpoint (called by thankyou.html)
+// ========================
+app.get("/api/receipt/:paymentId", async (req, res) => {
+  try {
+    const db = await getDb();
+    const paymentId = req.params.paymentId;
+
+    // Fetch one row (they all share the same snapshot JSON columns)
+    const row = await db.prepare(
+      "SELECT shipping_info, items_json, coupon_json, grand_total, sale_date, customer_email FROM sales WHERE payment_id = ? LIMIT 1"
+    ).get(paymentId);
+
+    if (!row) {
+      // Order might have been DEV-simulated before columns existed — return 404 gracefully
+      return res.status(404).json({ success: false, error: "Receipt not found" });
+    }
+
+    const shipping = (() => { try { return JSON.parse(row.shipping_info || '{}'); } catch(_) { return {}; } })();
+    const items    = (() => { try { return JSON.parse(row.items_json    || '[]'); } catch(_) { return []; } })();
+    const coupon   = (() => { try { return JSON.parse(row.coupon_json   || '{}'); } catch(_) { return {}; } })();
+
+    res.json({
+      success: true,
+      payment_id: paymentId,
+      date: row.sale_date,
+      grand_total: safeNum(row.grand_total),
+      customer_email: row.customer_email,
+      shipping,
+      items,
+      coupon,
+    });
+  } catch (err) {
+    console.error("❌ Receipt error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // ========================
 // Product Routes
@@ -684,7 +928,7 @@ app.post("/api/products", isAuthenticated, upload.single("image"), async (req, r
     const db = await getDb();
     const info = await db.prepare(
       "INSERT INTO products (name, description, price, qty, image, seller_id) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run(name, description || "", safeNum(price), safeNum(qty), image, seller_id);
+    ).run(sanitize(name), sanitize(description || ""), safeNum(price), safeNum(qty), image, seller_id);
 
     res.json({ success: true, productId: Number(info.lastInsertRowid), message: "Product added!" });
   } catch (err) {
@@ -706,7 +950,7 @@ app.put("/api/products/:id", isAuthenticated, upload.single("image"), async (req
     }
 
     let query = "UPDATE products SET name = ?, description = ?, price = ?, qty = ?";
-    const params = [name, description, safeNum(price), safeNum(qty)];
+    const params = [sanitize(name), sanitize(description || ""), safeNum(price), safeNum(qty)];
 
     if (req.file) {
       query += ", image = ?";
@@ -777,7 +1021,7 @@ app.post("/api/admin/sellers", isAdmin, async (req, res) => {
     const hashed = bcrypt.hashSync(password, 10);
     const info = await db.prepare(
       "INSERT INTO users (username, password, email, role, business_name) VALUES (?, ?, ?, 'seller', ?)"
-    ).run(username, hashed, email || "", business_name);
+    ).run(sanitize(username), hashed, sanitize(email || ""), sanitize(business_name));
 
     res.json({ success: true, sellerId: Number(info.lastInsertRowid) });
   } catch (err) {
@@ -791,7 +1035,7 @@ app.put("/api/admin/sellers/:id", isAdmin, async (req, res) => {
   try {
     const db = await getDb();
     let query = "UPDATE users SET username = ?, email = ?, business_name = ?";
-    const params = [username, email || "", business_name];
+    const params = [sanitize(username), sanitize(email || ""), sanitize(business_name)];
     if (password) { query += ", password = ?"; params.push(bcrypt.hashSync(password, 10)); }
     query += " WHERE id = ? AND role = 'seller'";
     params.push(id);
@@ -846,6 +1090,46 @@ app.get("/api/admin/dashboard", isAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ [Admin Dashboard] Error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Full sales list grouped by payment_id with all receipt data
+app.get("/api/admin/sales", isAdmin, async (req, res) => {
+  try {
+    const db = await getDb();
+    // Get one representative row per payment_id (latest sale in that checkout)
+    const rows = await db.prepare(`
+      SELECT
+        s.payment_id,
+        MAX(s.sale_date)  AS sale_date,
+        s.customer_email,
+        s.shipping_info,
+        s.items_json,
+        s.coupon_json,
+        MAX(s.grand_total) AS grand_total,
+        SUM(s.total_price) AS items_total,
+        COUNT(*) AS item_count
+      FROM sales s
+      GROUP BY s.payment_id
+      ORDER BY MAX(s.sale_date) DESC
+    `).all();
+
+    res.json({
+      success: true,
+      orders: rows.map(r => ({
+        payment_id:    r.payment_id,
+        sale_date:     r.sale_date,
+        customer_email: r.customer_email,
+        grand_total:   safeNum(r.grand_total || r.items_total),
+        item_count:    safeNum(r.item_count),
+        shipping: (() => { try { return JSON.parse(r.shipping_info || '{}'); } catch(_) { return {}; } })(),
+        items:    (() => { try { return JSON.parse(r.items_json    || '[]'); } catch(_) { return []; } })(),
+        coupon:   (() => { try { return JSON.parse(r.coupon_json   || '{}'); } catch(_) { return {}; } })(),
+      })),
+    });
+  } catch (err) {
+    console.error("❌ [Admin Sales] Error:", err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
