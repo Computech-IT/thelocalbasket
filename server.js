@@ -717,6 +717,27 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+// Update Password
+app.post("/api/auth/update-password", async (req, res) => {
+  const { username, oldPassword, newPassword } = req.body;
+  if (!username || !oldPassword || !newPassword) {
+    return res.status(400).json({ success: false, error: "All fields are required" });
+  }
+  try {
+    const db = await getDb();
+    const user = await db.prepare("SELECT * FROM users WHERE username = ?").get(sanitize(username));
+    if (!user || !bcrypt.compareSync(oldPassword, user.password)) {
+      return res.status(401).json({ success: false, error: "Invalid username or current password." });
+    }
+    const hashed = bcrypt.hashSync(newPassword, 10);
+    await db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashed, user.id);
+    res.json({ success: true, message: "Password updated successfully" });
+  } catch (err) {
+    console.error("❌ Update password error:", err);
+    res.status(500).json({ success: false, error: "Server error. Please try again." });
+  }
+});
+
 // Logout
 app.post("/api/auth/logout", (req, res) => {
   req.session.destroy((err) => {

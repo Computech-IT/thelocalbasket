@@ -229,9 +229,40 @@
       </form>
 
       <div class="back-link">
+        <a href="#" data-bs-toggle="modal" data-bs-target="#updatePwdModal" style="display:block;margin-bottom:12px;">Change Password?</a>
         <a href="/index.html">← Back to Store</a>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Update Password Modal -->
+  <div class="modal fade" id="updatePwdModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background:rgba(30,45,55,0.95); backdrop-filter:blur(20px); color:white; border: 1px solid rgba(255,255,255,0.1); border-radius:1rem;">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title">Change Password</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="updatePwdForm">
+            <div class="mb-3">
+              <label class="form-label text-white-50">Username</label>
+              <input type="text" id="updUsername" class="form-control" required style="background: rgba(255,255,255,0.08); color:white; border:1px solid rgba(255,255,255,0.15);">
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-white-50">Current Password</label>
+              <input type="password" id="updOldPassword" class="form-control" required style="background: rgba(255,255,255,0.08); color:white; border:1px solid rgba(255,255,255,0.15);">
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-white-50">New Password</label>
+              <input type="password" id="updNewPassword" class="form-control" required style="background: rgba(255,255,255,0.08); color:white; border:1px solid rgba(255,255,255,0.15);">
+            </div>
+            <div id="updMessage" class="small mb-3 text-center" style="min-height:20px;"></div>
+            <button type="submit" class="btn-login" style="margin-top:10px;">Update Password</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -310,6 +341,43 @@
     // Enter key support
     document.getElementById('password').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+    });
+
+    // Update Password logic
+    document.getElementById('updatePwdForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      const msg = document.getElementById('updMessage');
+      btn.disabled = true;
+      msg.textContent = 'Updating...';
+      msg.style.color = '#fff';
+
+      try {
+        const res = await fetch('/api/auth/update-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('updUsername').value.trim(),
+            oldPassword: document.getElementById('updOldPassword').value,
+            newPassword: document.getElementById('updNewPassword').value
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          msg.textContent = '✅ Password updated! You can now sign in.';
+          msg.style.color = '#6ee7b7';
+          e.target.reset();
+          setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('updatePwdModal')).hide(), 2500);
+        } else {
+          msg.textContent = '❌ ' + (data.error || 'Failed to update');
+          msg.style.color = '#ff6b81';
+        }
+      } catch (err) {
+        msg.textContent = '❌ Network error. Check connection.';
+        msg.style.color = '#ff6b81';
+      } finally {
+        btn.disabled = false;
+      }
     });
   </script>
 </body>
