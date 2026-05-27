@@ -173,7 +173,12 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("loginOverlay").classList.add("d-none");
       openCartPage();
     } else {
-      alert("Authentication failed. Please check your credentials.");
+      let errorMsg = "Authentication failed. Please check your credentials.";
+      try {
+        const errData = await res.json();
+        if (errData.error) errorMsg = errData.error;
+      } catch (e) {}
+      alert(errorMsg);
     }
   }
 
