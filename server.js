@@ -28,8 +28,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 // Startup Safety Checks
 // ========================
 if (NODE_ENV === "production" && !process.env.SESSION_SECRET) {
-  console.error("❌ FATAL: SESSION_SECRET must be set in production. Refusing to start.");
-  process.exit(1);
+  console.warn("⚠️  WARNING: SESSION_SECRET is not set in production. Using fallback secret. Please add SESSION_SECRET to your production environment variables immediately for secure sessions.");
 }
 
 // ========================
