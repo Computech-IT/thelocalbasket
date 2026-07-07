@@ -178,6 +178,57 @@
       object-fit: cover; border-radius: 6px;
     }
 
+    /* ===================== DROPZONE ===================== */
+    .dropzone-container {
+      border: 2px dashed rgba(0,0,0,0.15);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      background: #f8f9fa;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dropzone-container:hover, .dropzone-container.dragover {
+      background: #e9ecef;
+      border-color: var(--accent);
+    }
+    .dropzone-container i {
+      font-size: 2.5rem;
+      color: #6c757d;
+      margin-bottom: 0.5rem;
+      transition: color 0.2s;
+    }
+    .dropzone-container:hover i, .dropzone-container.dragover i {
+      color: var(--accent);
+    }
+    .dropzone-title { font-weight: 600; color: #343a40; margin-bottom: 0.25rem; }
+    .dropzone-subtitle { font-size: 0.8rem; color: #6c757d; }
+    
+    .image-preview-wrapper {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem;
+    }
+    .img-preview-box {
+      width: 70px; height: 70px;
+      border-radius: 8px;
+      position: relative;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .img-preview-box img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .img-preview-box .remove-btn {
+      position: absolute; top: -5px; right: -5px;
+      width: 20px; height: 20px;
+      background: #dc3545; color: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
     /* ===================== PRINT INVOICE ===================== */
     @media print {
       body * { visibility: hidden; }
@@ -422,9 +473,14 @@
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label">Product Image</label>
-              <input type="file" class="form-control" id="pImage" accept="image/*">
-              <small class="text-muted">Leave empty to keep existing image</small>
+              <label class="form-label fw-bold">Upload Images</label>
+              <div class="dropzone-container" id="productDropzone">
+                <i class="bi bi-cloud-arrow-up-fill"></i>
+                <div class="dropzone-title">Click to Upload Product Images</div>
+                <div class="dropzone-subtitle">Main image first. Up to 6 total.</div>
+              </div>
+              <input type="file" id="pDropzoneInput" accept="image/*" multiple style="display:none;">
+              <div class="image-preview-wrapper" id="imagePreviewContainer"></div>
             </div>
           </div>
           <div class="modal-footer">
@@ -677,9 +733,9 @@
       body.innerHTML = '';
 
       if (!data.success || !data.orders.length) {
-        body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No orders yet</td></tr>';
-        document.getElementById('salesCount').textContent = '';
-        return;
+      body.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No orders yet</td></tr>';
+      document.getElementById('salesCount').textContent = '';
+      return;
       }
 
       document.getElementById('salesCount').textContent = `${data.orders.length} order(s) total`;
@@ -692,6 +748,9 @@
           : '—';
 
         const itemNames = (order.items || []).map(i => esc(i.name)).join(', ') || '—';
+        const status = order.status || 'confirmed';
+        const statusColors = { confirmed: 'warning', processing: 'info', shipped: 'primary', delivered: 'success', cancelled: 'danger' };
+        const badgeColor = statusColors[status] || 'secondary';
 
         const row = document.createElement('tr');
         row.className = 'order-row';
@@ -706,6 +765,15 @@
           <td><span class="fw-bold text-success">₹${fmt(order.grand_total)}</span></td>
           <td class="d-none d-md-table-cell"><small class="text-muted">${dateStr}</small></td>
           <td>
+            <select class="form-select form-select-sm status-select" data-pid="${esc(order.payment_id)}" style="min-width:120px;">
+              <option value="confirmed"  ${status==='confirmed'  ? 'selected':''}>🟡 Confirmed</option>
+              <option value="processing" ${status==='processing' ? 'selected':''}>🔵 Processing</option>
+              <option value="shipped"    ${status==='shipped'    ? 'selected':''}>📦 Shipped</option>
+              <option value="delivered"  ${status==='delivered'  ? 'selected':''}>✅ Delivered</option>
+              <option value="cancelled"  ${status==='cancelled'  ? 'selected':''}>❌ Cancelled</option>
+            </select>
+          </td>
+          <td>
             <button class="btn btn-sm btn-outline-success rounded-pill print-btn" data-pid="${esc(order.payment_id)}">
               <i class="bi bi-printer me-1"></i>Print
             </button>
@@ -715,8 +783,24 @@
           e.stopPropagation();
           printInvoice(order);
         });
+        row.querySelector('.status-select').addEventListener('change', (e) => updateOrderStatus(order.payment_id, e.target.value));
         body.appendChild(row);
       });
+    }
+
+    // ===================== UPDATE ORDER STATUS =====================
+    async function updateOrderStatus(paymentId, status) {
+      try {
+        const res = await fetch(`/api/admin/orders/${encodeURIComponent(paymentId)}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        if (!data.success) alert('Failed to update status: ' + (data.error || 'Unknown error'));
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
     }
 
     // ===================== PRINT INVOICE =====================
@@ -837,10 +921,98 @@
       });
     }
 
+    // ===================== DROPZONE LOGIC =====================
+    let selectedFiles = [];
+    const dropzone = document.getElementById('productDropzone');
+    const fileInput = document.getElementById('pDropzoneInput');
+    const previewContainer = document.getElementById('imagePreviewContainer');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('click', e => e.stopPropagation()); // prevent bubble
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault(); dropzone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+    async function compressImage(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            let width = img.width, height = img.height;
+            const maxWidth = 1200, maxHeight = 1200;
+            if (width > height) {
+              if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+            } else {
+              if (height > maxHeight) { width = Math.round((width * maxHeight) / height); height = maxHeight; }
+            }
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+              resolve(new File([blob], file.name, { type: "image/jpeg", lastModified: Date.now() }));
+            }, "image/jpeg", 0.75);
+          };
+        };
+      });
+    }
+
+    async function handleFiles(files) {
+      if (!files.length) return;
+      const submitBtn = document.querySelector('#productForm button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Compressing...';
+      
+      for(let f of files) {
+        if (selectedFiles.length >= 6) break;
+        if (f.type.startsWith('image/')) {
+           const compressed = await compressImage(f);
+           selectedFiles.push(compressed);
+        }
+      }
+      
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Save Product';
+      renderPreviews();
+    }
+
+    function renderPreviews() {
+      previewContainer.innerHTML = '';
+      selectedFiles.forEach((file, index) => {
+        const box = document.createElement('div');
+        box.className = 'img-preview-box';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        
+        const remove = document.createElement('div');
+        remove.className = 'remove-btn';
+        remove.innerHTML = '<i class="bi bi-x"></i>';
+        remove.onclick = (e) => {
+          e.stopPropagation();
+          selectedFiles.splice(index, 1);
+          renderPreviews();
+        };
+
+        box.appendChild(img);
+        box.appendChild(remove);
+        previewContainer.appendChild(box);
+      });
+      fileInput.value = '';
+    }
+
     function openProductModal() {
       document.getElementById('productModalTitle').textContent = 'Add Product';
       document.getElementById('productId').value = '';
       document.getElementById('productForm').reset();
+      selectedFiles = [];
+      renderPreviews();
       productModal.show();
     }
 
@@ -851,6 +1023,8 @@
       document.getElementById('pDesc').value = p.description;
       document.getElementById('pPrice').value = p.price;
       document.getElementById('pQty').value = p.qty;
+      selectedFiles = [];
+      renderPreviews();
       productModal.show();
     }
 
@@ -865,8 +1039,12 @@
       formData.append('description', document.getElementById('pDesc').value);
       formData.append('price', document.getElementById('pPrice').value);
       formData.append('qty', document.getElementById('pQty').value);
-      const imgFile = document.getElementById('pImage').files[0];
-      if (imgFile) formData.append('image', imgFile);
+      
+      if (selectedFiles.length > 0) formData.append('image', selectedFiles[0]);
+      for (let i = 1; i < selectedFiles.length; i++) {
+        formData.append('additional_images', selectedFiles[i]);
+      }
+      
       try {
         const res = await fetch(id ? `/api/products/${id}` : '/api/products', {
           method: id ? 'PUT' : 'POST', body: formData

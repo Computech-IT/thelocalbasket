@@ -10,3 +10,8 @@ sessions/
 !public/images/images.png
 
 products.db-*
+
+thelocalbasket.db
+uploads/
+JantaOpticalCenter/
+

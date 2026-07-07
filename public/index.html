@@ -18,6 +18,258 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.min.css">
+    
+    <style>
+        /* View Transitions API Support */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation-duration: 0.3s;
+        }
+        
+        /* Skeleton Loaders for Products */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 8px;
+            color: transparent !important;
+            min-height: 20px;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-img {
+            width: 100%;
+            height: 180px;
+            display: block;
+        }
+
+        /* --- PREMIUM REDESIGN STYLES --- */
+        :root {
+            --emerald-primary: #044b36;
+            --emerald-light: #077152;
+            --text-dark: #1a1a1a;
+            --bg-offwhite: #fafafa;
+        }
+        body {
+            background-color: var(--bg-offwhite);
+            color: var(--text-dark);
+        }
+        /* Glassmorphism Hero */
+        .hero-section {
+            position: relative;
+            min-height: 85vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 0 0 40px 40px;
+            margin-bottom: 3rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+        .hero-image {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        .hero-gradient-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(4,75,54,0.6));
+            z-index: 2;
+        }
+        .hero-glass-card {
+            position: relative;
+            z-index: 3;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            padding: 4rem 3rem;
+            text-align: center;
+            max-width: 800px;
+            width: 90%;
+            color: white;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+            transform: translateY(30px);
+            opacity: 0;
+            animation: heroFadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation-delay: 0.2s;
+        }
+        @keyframes heroFadeUp {
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        /* Slideshow Thumbnails */
+        .product-thumbnails {
+            display: flex;
+            gap: 6px;
+            padding: 8px;
+            overflow-x: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+        }
+        .product-thumbnails::-webkit-scrollbar { display: none; }
+        .card-thumb {
+            width: 45px;
+            height: 45px;
+            flex-shrink: 0;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .card-thumb:hover, .card-thumb.active {
+            opacity: 1;
+            border-color: var(--emerald-primary, #25D366);
+        }
+        .hero-glass-card h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 600;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .hero-glass-card p {
+            font-size: 1.1rem;
+            font-weight: 300;
+            opacity: 0.9;
+            margin-bottom: 2.5rem;
+        }
+        .btn-premium {
+            background: #fff;
+            color: var(--emerald-primary);
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .btn-premium:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            color: var(--emerald-light);
+        }
+        
+        /* Modern Seller Pills */
+        .seller-filter-container {
+            margin: 3rem auto;
+            max-width: 1400px;
+            padding: 0 20px;
+        }
+        .seller-filter {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            overflow-x: auto;
+            padding-bottom: 15px;
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .seller-filter::-webkit-scrollbar { display: none; }
+        .seller-filter h6 {
+            margin: 0;
+            font-weight: 600;
+            color: var(--text-dark);
+            white-space: nowrap;
+            padding-right: 1rem;
+            border-right: 2px solid #eaeaea;
+        }
+        #sellerList {
+            display: flex;
+            gap: 0.75rem;
+        }
+        #sellerList button {
+            border: 1px solid #e0e0e0;
+            background: #fff;
+            color: #555;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        #sellerList button.active, #sellerList button:hover {
+            background: var(--emerald-primary);
+            color: #fff;
+            border-color: var(--emerald-primary);
+        }
+
+        /* Scroll Reveal Utility */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Minimal Footer */
+        .footer-minimal {
+            background: #fff;
+            border-top: 1px solid #f0f0f0;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+        .footer-minimal-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .footer-minimal-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--emerald-primary);
+            text-decoration: none;
+        }
+        .footer-minimal-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .footer-minimal-links a {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .footer-minimal-links a:hover { color: var(--emerald-primary); }
+        .footer-minimal-social {
+            display: flex;
+            gap: 1rem;
+        }
+        .footer-minimal-social a {
+            color: #999;
+            font-size: 1.1rem;
+            transition: color 0.2s;
+        }
+        .footer-minimal-social a:hover { color: var(--emerald-primary); }
+        
+        @media (max-width: 768px) {
+            .footer-minimal-container { flex-direction: column; text-align: center; }
+            .footer-minimal-links { flex-wrap: wrap; justify-content: center; }
+        }
+    </style>
 </head>
 
 <body>
@@ -43,15 +295,16 @@
     <div id="homePage">
 
     <section class="hero-section">
-        <img src="images/images.png" alt="Premium Products" class="hero-image">
-        <div class="hero-overlay">
+        <img src="images/images.png" alt="Premium Products" class="hero-image" fetchpriority="high">
+        <div class="hero-gradient-overlay"></div>
+        <div class="hero-glass-card">
             <h1>Locally Crafted.<br>Globally Loved.</h1>
             <p>A curated selection from local artisans and businesses. Uncompromising quality you can trust.</p>
-            <a href="#featured" class="btn-accent">Explore the Collection</a>
+            <a href="#featured" class="btn-premium">Explore the Collection</a>
         </div>
     </section>
 
-    <div class="seller-filter-container" id="featured">
+    <div class="seller-filter-container reveal" id="featured">
         <div class="seller-filter">
             <h6>Curated Shops</h6>
             <div id="sellerList">
@@ -61,11 +314,11 @@
         </div>
     </div>
 
-    <section class="products-container">
+    <section class="products-container reveal">
         <div class="products-grid"></div>
         <div id="noResults" class="text-center py-5" style="display: none;">
-            <i class="bi bi-search" style="font-size: 3rem; color: var(--color-text-light);"></i>
-            <h3 class="mt-4" style="font-family: var(--font-sans); font-weight: 500;">No products found</h3>
+            <i class="bi bi-search" style="font-size: 3rem; color: #ccc;"></i>
+            <h3 class="mt-4" style="font-family: 'Playfair Display', serif;">No products found</h3>
             <p class="text-muted">Try adjusting your search terms</p>
         </div>
     </section>
@@ -109,56 +362,24 @@
         </a>
     </nav>
 
-    <footer class="footer">
-        <div class="container" style="max-width: 1400px; margin: 0 auto;">
-            <div class="row gy-5">
-                <div class="col-md-4">
-                    <h5 class="fw-normal">The Local Basket</h5>
-                    <p style="color: var(--color-text-light); max-width: 300px; font-weight: 300;">
-                        Curated, locally sourced products supporting artisans & small businesses.
-                    </p>
-                    <div class="d-flex gap-3 social-links mt-4">
-                        <a href="#"><i class="bi bi-facebook"></i></a>
-                        <a href="https://www.instagram.com/thelocalbaskets" target="_blank"><i class="bi bi-instagram"></i></a>
-                        <a href="https://wa.me/+919609010193" target="_blank"><i class="bi bi-whatsapp"></i></a>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-2 offset-md-1">
-                    <h6 class="fw-normal">Client Care</h6>
-                    <ul class="list-unstyled">
-                        <li><a href="FAQs.html" class="footer-link">FAQs</a></li>
-                        <li><a href="shipping.html" class="footer-link">Shipping</a></li>
-                        <li><a href="return.html" class="footer-link">Returns</a></li>
-                        <li><a href="contactus.html" class="footer-link">Contact</a></li>
-                        <li><a href="login.html" class="footer-link">Portal Login</a></li>
-                    </ul>
-                </div>
-
-                <div class="col-6 col-md-2">
-                    <h6 class="fw-normal">Explore</h6>
-                    <ul class="list-unstyled">
-                        <li><a href="#" id="scrollToTop" class="footer-link">The Collection</a></li>
-                        <li><a href="#" id="newArrivals" class="footer-link">New Arrivals</a></li>
-                        <li><a href="#" id="offers" class="footer-link">Privileges</a></li>
-                    </ul>
-                </div>
-
-                <div class="col-md-3">
-                    <h6 class="fw-normal">Contact</h6>
-                    <div style="color: var(--color-text-light); font-weight: 300;">
-                        <p class="mb-2">New Market, Pakyong, East Sikkim</p>
-                        <p class="mb-2">tlbpkg@gmail.com</p>
-                        <p class="mb-0">+91 9609010193</p>
-                        <p class="mb-0">+91 7872778009</p>
-                    </div>
-                </div>
+    <footer class="footer-minimal reveal">
+        <div class="footer-minimal-container">
+            <div>
+                <a href="index.html" class="footer-minimal-brand">The Local Basket</a>
+                <p style="font-size: 0.8rem; color: #999; margin: 0.5rem 0 0;">&copy; 2026. All rights reserved.</p>
             </div>
+            
+            <ul class="footer-minimal-links">
+                <li><a href="FAQs.html">FAQs</a></li>
+                <li><a href="shipping.html">Shipping & Returns</a></li>
+                <li><a href="contactus.html">Contact Us</a></li>
+                <li><a href="login.html">Seller Portal</a></li>
+            </ul>
 
-            <hr style="border-color: rgba(255,255,255,0.1); margin: 50px 0 30px;">
-
-            <div class="text-center" style="color: var(--color-text-light); font-size: 0.9rem; font-weight: 300;">
-                &copy; 2026 The Local Basket. All rights reserved.
+            <div class="footer-minimal-social">
+                <a href="#" title="Facebook" rel="noopener noreferrer"><i class="bi bi-facebook"></i></a>
+                <a href="https://www.instagram.com/thelocalbaskets" target="_blank" title="Instagram" rel="noopener noreferrer"><i class="bi bi-instagram"></i></a>
+                <a href="https://wa.me/+919609010193" target="_blank" title="WhatsApp" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i></a>
             </div>
         </div>
     </footer>
@@ -203,6 +424,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="/js/cart-persist.js"></script>
     <script src="/js/tlb-receipt-shim.obf.js"></script>
     <script src="/js/main.js" defer></script>
     <script src="/js/app.obf.js" defer></script>
@@ -215,11 +437,6 @@
             }
         });
 
-        document.getElementById("scrollToTop").addEventListener("click", function (e) {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-        });
-        
         document.querySelectorAll(".nav-home-btn").forEach(btn => {
             btn.addEventListener("click", function(e) {
                 e.preventDefault();
@@ -227,14 +444,121 @@
             });
         });
 
-        document.getElementById("newArrivals").addEventListener("click", function (e) {
-            e.preventDefault();
-            alert("🛍️ New Arrivals - Coming Soon!");
+        // Add View Transitions to Navigation
+        document.querySelectorAll('a, button').forEach(el => {
+            el.addEventListener('click', (e) => {
+                // Let JS-driven routing handle their own transitions if they want, 
+                // but if there's no native transition, we can wrap standard clicks.
+                if (document.startViewTransition && e.target.tagName === 'A' && e.target.href && !e.target.href.includes('#')) {
+                    // Only wrap actual navigation if needed, or leave it to browser default.
+                }
+            });
         });
 
-        document.getElementById("offers").addEventListener("click", function (e) {
-            e.preventDefault();
-            alert("🎁 Exciting Offers - Coming Soon!");
+        // Global map for extra product info (specifically slideshow images)
+        window.TLBProductsMap = {};
+        fetch('/api/products').then(r=>r.json()).then(data => {
+            if(data.success) {
+                data.products.forEach(p => {
+                    window.TLBProductsMap[p.id] = p;
+                });
+            }
+        }).catch(err => console.error("Could not load global product map", err));
+
+        function injectSlideshow(card) {
+            if (card.querySelector('.product-thumbnails')) return; // Already injected
+            const id = card.dataset.id;
+            if (!id || !window.TLBProductsMap[id]) return;
+            const product = window.TLBProductsMap[id];
+            
+            let extraImages = [];
+            if (product.additional_images) {
+                try {
+                    extraImages = JSON.parse(product.additional_images);
+                } catch(e) {}
+            }
+            if (!extraImages || extraImages.length === 0) return;
+
+            const allImages = [product.image, ...extraImages];
+            const imgContainer = card.querySelector('.position-relative'); // wrapper of the main image
+            const mainImg = card.querySelector('.product-img');
+            if (!imgContainer || !mainImg) return;
+
+            const thumbsContainer = document.createElement('div');
+            thumbsContainer.className = 'product-thumbnails';
+            
+            allImages.forEach((imgSrc, idx) => {
+                const thumb = document.createElement('img');
+                thumb.src = '/' + imgSrc;
+                thumb.className = 'card-thumb' + (idx === 0 ? ' active' : '');
+                thumb.loading = 'lazy';
+                thumb.onclick = (e) => {
+                    e.stopPropagation(); // prevent opening quick view
+                    thumbsContainer.querySelectorAll('.card-thumb').forEach(t => t.classList.remove('active'));
+                    thumb.classList.add('active');
+                    mainImg.src = '/' + imgSrc;
+                };
+                thumbsContainer.appendChild(thumb);
+            });
+            
+            imgContainer.parentNode.insertBefore(thumbsContainer, imgContainer.nextSibling);
+        }
+
+        // MutationObserver to automatically add lazy loading and multi-image slideshows
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) { // ELEMENT_NODE
+                        // Check if the node is an image or contains images
+                        const images = node.tagName === 'IMG' ? [node] : node.querySelectorAll('img');
+                        images.forEach(img => {
+                            if (!img.hasAttribute('loading') && !img.classList.contains('hero-image')) {
+                                img.setAttribute('loading', 'lazy');
+                                img.setAttribute('decoding', 'async');
+                            }
+                        });
+                        
+                        // Check for product cards to inject slideshows
+                        if (node.classList.contains('product-card')) {
+                            injectSlideshow(node);
+                        } else if (node.querySelectorAll) {
+                            node.querySelectorAll('.product-card').forEach(injectSlideshow);
+                        }
+                    }
+                });
+            });
+        });
+
+        // Start observing the products grid and other dynamic areas
+        document.addEventListener("DOMContentLoaded", () => {
+            const productsGrid = document.querySelector('.products-grid');
+            if (productsGrid) {
+                observer.observe(productsGrid, { childList: true, subtree: true });
+            }
+            const cartBody = document.getElementById('cartBody');
+            if(cartBody) {
+                 observer.observe(cartBody, { childList: true, subtree: true });
+            }
+            
+            // Add skeleton loaders before products load
+            if (productsGrid && productsGrid.children.length === 0) {
+                let skeletons = '';
+                for(let i=0; i<8; i++) {
+                    skeletons += '<div class="product-card skeleton" style="height: 300px;"></div>';
+                }
+                productsGrid.innerHTML = skeletons;
+            }
+
+            // Scroll Reveal Logic
+            const revealElements = document.querySelectorAll('.reveal');
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                });
+            }, { threshold: 0.1 });
+            revealElements.forEach(el => revealObserver.observe(el));
         });
     </script>
 </body>

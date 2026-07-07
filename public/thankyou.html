@@ -22,6 +22,7 @@
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
       background: linear-gradient(135deg, #f0f7f4 0%, #e8f5e9 100%);
+      color: #000000;
       min-height: 100vh;
       padding: 20px;
     }
@@ -259,8 +260,11 @@
     @media print {
       body { background: white; padding: 0; }
       .action-btns, .success-banner, .confetti-piece { display: none !important; }
-      #invoiceCard { box-shadow: none; border-radius: 0; animation: none; }
-      .invoice-footer { background: white; }
+      #invoiceCard { box-shadow: none; border-radius: 0; animation: none; color: black !important; }
+      #invoiceCard * { color: black !important; }
+      .invoice-header { background: none; border-bottom: 2px solid #000; }
+      .items-table thead th { background: none; border-bottom: 2px solid #000; }
+      .invoice-footer { background: white; border-top: 2px solid #000; }
     }
 
     @media (max-width: 600px) {

@@ -4,6 +4,7 @@
 // ========================
 
 const express = require("express");
+const compression = require("compression");
 const cors = require("cors");
 const helmet = require("helmet");
 const { google } = require("googleapis");
@@ -22,6 +23,14 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
+
+// ========================
+// Startup Safety Checks
+// ========================
+if (NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  console.error("❌ FATAL: SESSION_SECRET must be set in production. Refusing to start.");
+  process.exit(1);
+}
 
 // ========================
 // Database Layer
@@ -157,11 +166,14 @@ async function bootstrapDatabase() {
     `).run();
 
     // Add columns if they don't exist (safe for existing DBs)
+    try { await db.prepare("ALTER TABLE products ADD COLUMN additional_images TEXT").run(); } catch(e) {}
+    try { await db.prepare("ALTER TABLE users ADD COLUMN phone VARCHAR(20)").run(); } catch(e) {}
     const alterCols = [
       { col: 'shipping_info', type: 'TEXT' },
       { col: 'items_json',    type: 'TEXT' },
       { col: 'coupon_json',   type: 'TEXT' },
       { col: 'grand_total',   type: 'DECIMAL(10,2)' },
+      { col: 'status',        type: "VARCHAR(50) DEFAULT 'confirmed'" },
     ];
     for (const { col, type } of alterCols) {
       try {
@@ -206,10 +218,15 @@ async function bootstrapDatabase() {
     // Seed default admin if none exists
     const admin = await db.prepare("SELECT id FROM users WHERE role = 'admin'").get();
     if (!admin) {
-      const hashed = bcrypt.hashSync("admin123", 10);
+      const adminPass = process.env.ADMIN_DEFAULT_PASSWORD || crypto.randomBytes(12).toString("hex");
+      const hashed = bcrypt.hashSync(adminPass, 10);
       await db.prepare("INSERT INTO users (username, password, role, email, business_name) VALUES (?, ?, ?, ?, ?)")
         .run("admin", hashed, "admin", "admin@thelocalbasket.in", "The Local Basket");
-      console.log("✅ Default admin created — username: admin, password: admin123");
+      if (!process.env.ADMIN_DEFAULT_PASSWORD) {
+        console.log(`✅ Default admin created — username: admin, password: ${adminPass}  ⚠️  SAVE THIS NOW — it won't be shown again.`);
+      } else {
+        console.log("✅ Default admin created with ADMIN_DEFAULT_PASSWORD from .env");
+      }
     }
 
     console.log("✅ Database ready.");
@@ -229,6 +246,8 @@ if (NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 
+app.use(compression());
+
 app.use(cors({
   origin: NODE_ENV === "production"
     ? ["https://thelocalbasket.in", "https://www.thelocalbasket.in"]
@@ -240,12 +259,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://apis.google.com", "https://cdn.jsdelivr.net"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://cdn.razorpay.com", "https://*.razorpay.com", "https://apis.google.com", "https://cdn.jsdelivr.net"],
       "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
       "font-src": ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
       "frame-src": ["'self'", "https://api.razorpay.com", "https://tds.razorpay.com", "https://checkout.razorpay.com"],
       "img-src": ["'self'", "data:", "https://*.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in"],
-      "connect-src": ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in", "https://cdn.jsdelivr.net"],
+      "connect-src": ["'self'", "https://api.razorpay.com", "https://cdn.razorpay.com", "https://*.razorpay.com", "https://lumberjack.razorpay.com", "https://thelocalbasket.in", "https://www.thelocalbasket.in", "https://cdn.jsdelivr.net"],
     },
   },
 }));
@@ -302,10 +321,26 @@ const orderLimiter = rateLimit({
   max: 30,
   message: { success: false, error: "Too many order attempts." },
 });
+const receiptLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  message: { success: false, error: "Too many receipt requests. Slow down." },
+});
+const couponLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { success: false, error: "Too many coupon requests." },
+});
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: "Too many registration attempts. Try again later." },
+});
 
 app.use("/api/", generalLimiter);
 app.use("/api/auth/login", authLimiter);
 app.use("/create-razorpay-order", orderLimiter);
+app.use("/api/coupons", couponLimiter);
 
 // ========================
 // Auth Middlewares
@@ -334,8 +369,17 @@ app.get("/admin", isAdmin, (_req, res) => res.sendFile(path.join(__dirname, "pub
 app.get("/seller", isAuthenticated, (_req, res) => res.sendFile(path.join(__dirname, "public", "seller.html")));
 
 // Static assets
-app.use("/images", express.static(path.join(__dirname, "public", "images")));
-app.use(express.static(path.join(__dirname, "public")));  // serves index.html for / as fallback
+app.use("/images", express.static(path.join(__dirname, "public", "images"), { maxAge: '30d' }));
+app.use(express.static(path.join(__dirname, "public"), { 
+  maxAge: '1d',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // Suppress favicon 404
 app.get("/favicon.ico", (_req, res) => res.sendFile(path.join(__dirname, "public", "images", "logo.PNG"), { headers: { "Content-Type": "image/png" } }, () => res.status(204).end()));
@@ -346,10 +390,23 @@ app.get("/favicon.ico", (_req, res) => res.sendFile(path.join(__dirname, "public
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, path.join(__dirname, "public", "images")),
   filename: (_req, file, cb) => {
-    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`);
+    // Sanitise extension — only allow safe image exts
+    const safeExt = path.extname(file.originalname).toLowerCase().replace(/[^.a-z]/g, "");
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExt}`);
   },
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const imageFileFilter = (_req, file, cb) => {
+  const allowedMimes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+  const allowedExts = /\.(jpg|jpeg|png|gif|webp)$/i;
+  const extOk = allowedExts.test(path.extname(file.originalname));
+  const mimeOk = allowedMimes.includes(file.mimetype);
+  if (extOk && mimeOk) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image files (jpg, jpeg, png, gif, webp) are allowed."), false);
+  }
+};
+const upload = multer({ storage, fileFilter: imageFileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // ========================
 // Razorpay
@@ -518,10 +575,15 @@ app.get("/oauth2callback", async (req, res) => {
 // Customer Endpoints
 // ========================
 
-app.post("/api/customer/register", async (req, res) => {
+app.post("/api/customer/register", registerLimiter, async (req, res) => {
   const { email, password, full_name, phone } = req.body;
   const cleanEmail = sanitize(email);
   if (!cleanEmail || !password) return res.status(400).json({ error: "Email and password required" });
+  // Input length guards
+  if (cleanEmail.length > 255) return res.status(400).json({ error: "Email too long" });
+  if (password.length < 6 || password.length > 128) return res.status(400).json({ error: "Password must be 6–128 characters" });
+  if (full_name && full_name.length > 100) return res.status(400).json({ error: "Name too long" });
+  if (phone && phone.length > 20) return res.status(400).json({ error: "Phone number too long" });
   try {
     const db = await getDb();
     const existing = await db.prepare("SELECT id FROM customers WHERE email = ?").get(cleanEmail);
@@ -755,8 +817,8 @@ app.get("/api/auth/me", (req, res) => {
   res.json({ success: false, user: null });
 });
 
-// Test email
-app.post("/test-email", async (req, res) => {
+// Test email — admin only
+app.post("/test-email", isAdmin, async (req, res) => {
   try {
     await sendGmail(
       process.env.RECEIVER_EMAIL,
@@ -805,8 +867,9 @@ app.post("/razorpay-webhook", async (req, res) => {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
     // Detect DEV-mode simulated payments (payment ID starts with "DEV-")
+    // ⚠️  DEV bypass is ONLY allowed outside production
     const rawPayment = req.body.payload?.payment?.entity || req.body.payment?.entity || req.body;
-    const isDevMode  = String(rawPayment?.id || "").startsWith("DEV-");
+    const isDevMode  = NODE_ENV !== "production" && String(rawPayment?.id || "").startsWith("DEV-");
 
     if (!isDevMode && webhookSecret) {
       // Production: enforce HMAC signature verification
@@ -868,7 +931,8 @@ BigInt.prototype.toJSON = function () { return Number(this); };
 // ========================
 // Public Receipt Endpoint (called by thankyou.html)
 // ========================
-app.get("/api/receipt/:paymentId", async (req, res) => {
+// Receipt endpoint — rate-limited + optional session ownership check
+app.get("/api/receipt/:paymentId", receiptLimiter, async (req, res) => {
   try {
     const db = await getDb();
     const paymentId = req.params.paymentId;
@@ -877,6 +941,11 @@ app.get("/api/receipt/:paymentId", async (req, res) => {
     const row = await db.prepare(
       "SELECT shipping_info, items_json, coupon_json, grand_total, sale_date, customer_email FROM sales WHERE payment_id = ? LIMIT 1"
     ).get(paymentId);
+
+    // If a customer is logged in, ensure this receipt belongs to them
+    if (req.session.customer_id && row && row.customer_email !== req.session.customer_email) {
+      return res.status(403).json({ success: false, error: "Unauthorized" });
+    }
 
     if (!row) {
       // Order might have been DEV-simulated before columns existed — return 404 gracefully
@@ -937,28 +1006,34 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-app.post("/api/products", isAuthenticated, upload.single("image"), async (req, res) => {
+app.post("/api/products", isAuthenticated, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'additional_images', maxCount: 5 }]), async (req, res) => {
   const { name, description, price, qty } = req.body;
   if (!name || !price || !qty) {
     return res.status(400).json({ success: false, error: "Name, Price and Quantity are required." });
   }
-  const image = req.file ? `images/${req.file.filename}` : "images/placeholder.jpg";
+  const image = req.files && req.files['image'] ? `images/${req.files['image'][0].filename}` : "images/placeholder.jpg";
+  const additionalImages = req.files && req.files['additional_images'] 
+    ? JSON.stringify(req.files['additional_images'].map(f => `images/${f.filename}`))
+    : "[]";
   const seller_id = req.session.user.id;
 
   try {
     const db = await getDb();
     const info = await db.prepare(
-      "INSERT INTO products (name, description, price, qty, image, seller_id) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run(sanitize(name), sanitize(description || ""), safeNum(price), safeNum(qty), image, seller_id);
+      "INSERT INTO products (name, description, price, qty, image, additional_images, seller_id) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).run(sanitize(name), sanitize(description || ""), safeNum(price), safeNum(qty), image, additionalImages, seller_id);
 
     res.json({ success: true, productId: Number(info.lastInsertRowid), message: "Product added!" });
   } catch (err) {
     console.error("❌ [Add Product] Error:", err.message);
+    if (err.message.includes('UNIQUE constraint failed')) {
+      return res.status(400).json({ success: false, error: "A product with this name already exists. Please choose a different name." });
+    }
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.put("/api/products/:id", isAuthenticated, upload.single("image"), async (req, res) => {
+app.put("/api/products/:id", isAuthenticated, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'additional_images', maxCount: 5 }]), async (req, res) => {
   const { name, description, price, qty } = req.body;
   const productId = req.params.id;
 
@@ -973,9 +1048,13 @@ app.put("/api/products/:id", isAuthenticated, upload.single("image"), async (req
     let query = "UPDATE products SET name = ?, description = ?, price = ?, qty = ?";
     const params = [sanitize(name), sanitize(description || ""), safeNum(price), safeNum(qty)];
 
-    if (req.file) {
+    if (req.files && req.files['image']) {
       query += ", image = ?";
-      params.push(`images/${req.file.filename}`);
+      params.push(`images/${req.files['image'][0].filename}`);
+    }
+    if (req.files && req.files['additional_images']) {
+      query += ", additional_images = ?";
+      params.push(JSON.stringify(req.files['additional_images'].map(f => `images/${f.filename}`)));
     }
     query += " WHERE id = ?";
     params.push(productId);
@@ -1199,10 +1278,69 @@ app.get("/api/coupons", async (req, res) => {
     const db = await getDb();
     const isMySQL = !!process.env.DB_HOST;
     const now = isMySQL ? "NOW()" : "datetime('now')";
-    const coupons = await db.prepare(`SELECT * FROM coupons WHERE expires > ${now}`).all();
+    // Return only safe fields — don't expose max_discount internals
+    const coupons = await db.prepare(`SELECT code, type, value, min_purchase, max_discount, expires, message FROM coupons WHERE expires > ${now}`).all();
     res.json(coupons);
   } catch (err) {
     res.status(500).json({ error: "Failed to load coupons" });
+  }
+});
+
+// Server-side coupon validation — returns discount amount without exposing all coupons
+app.post("/api/coupons/validate", couponLimiter, async (req, res) => {
+  const { code, subtotal } = req.body;
+  if (!code || typeof code !== "string") return res.status(400).json({ valid: false, error: "Coupon code required" });
+  try {
+    const db = await getDb();
+    const isMySQL = !!process.env.DB_HOST;
+    const now = isMySQL ? "NOW()" : "datetime('now')";
+    const coupon = await db.prepare(
+      `SELECT * FROM coupons WHERE code = ? AND expires > ${now}`
+    ).get(code.toUpperCase().trim());
+
+    if (!coupon) return res.json({ valid: false, error: "❌ Invalid or expired coupon code." });
+
+    const sub = safeNum(subtotal);
+    if (sub < safeNum(coupon.min_purchase)) {
+      return res.json({ valid: false, error: `⚠️ Minimum purchase ₹${coupon.min_purchase} required.` });
+    }
+
+    let discount = 0;
+    if (coupon.type === "percent") {
+      discount = sub * safeNum(coupon.value) / 100;
+      if (coupon.max_discount) discount = Math.min(discount, safeNum(coupon.max_discount));
+    } else if (coupon.type === "flat") {
+      discount = Math.min(safeNum(coupon.value), safeNum(coupon.max_discount || coupon.value));
+    }
+    discount = parseFloat(discount.toFixed(2));
+
+    res.json({
+      valid: true,
+      discount,
+      message: coupon.message || `Coupon applied! You saved ₹${discount.toFixed(2)}.`,
+      coupon: { code: coupon.code, name: coupon.message || coupon.code, type: coupon.type, value: coupon.value, discount },
+    });
+  } catch (err) {
+    console.error("❌ [Coupon Validate] Error:", err.message);
+    res.status(500).json({ valid: false, error: "Server error" });
+  }
+});
+
+// Admin: Update order status
+app.put("/api/admin/orders/:paymentId/status", isAdmin, async (req, res) => {
+  const { status } = req.body;
+  const validStatuses = ["confirmed", "processing", "shipped", "delivered", "cancelled"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ success: false, error: "Invalid status value." });
+  }
+  try {
+    const db = await getDb();
+    const result = await db.prepare("UPDATE sales SET status = ? WHERE payment_id = ?").run(status, req.params.paymentId);
+    if (result.changes === 0) return res.status(404).json({ success: false, error: "Order not found." });
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ [Order Status] Error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -1213,7 +1351,8 @@ app.get("/health", (_req, res) => {
   res.json({ status: "OK", env: NODE_ENV, time: new Date().toISOString() });
 });
 
-app.get("/api/db-test", async (req, res) => {
+// DB diagnostic — admin only in all environments
+app.get("/api/db-test", isAdmin, async (req, res) => {
   const dbType = process.env.DB_HOST ? "mysql" : "sqlite";
   const startTime = Date.now();
 
